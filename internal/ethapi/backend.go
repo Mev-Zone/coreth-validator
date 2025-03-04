@@ -108,6 +108,15 @@ type Backend interface {
 	SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription
 	BloomStatus() (uint64, uint64)
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
+
+	// MevRunning return true if mev is running
+	MevRunning() bool
+	// MevParams returns the static params of mev
+	MevParams() *types.MevParams
+	// SendBid receives bid from the builders.
+	SendBid(ctx context.Context, bid *types.BidArgs) (common.Hash, error)
+	// BestBidGasFee returns the gas fee of the best bid for the given parent hash.
+	BestBidGasFee(parentHash common.Hash) *big.Int
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {

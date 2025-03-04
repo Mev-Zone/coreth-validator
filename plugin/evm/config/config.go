@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/vms/components/gas"
+	"github.com/ava-labs/coreth/miner"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/spf13/cast"
@@ -232,7 +233,8 @@ type Config struct {
 	WarpOffChainMessages []hexutil.Bytes `json:"warp-off-chain-messages"`
 
 	// RPC settings
-	HttpBodyLimit uint64 `json:"http-body-limit"`
+	HttpBodyLimit uint64          `json:"http-body-limit"`
+	Mev           miner.MevConfig `json:"mev"`
 }
 
 // TxPoolConfig contains the transaction pool config to be passed
