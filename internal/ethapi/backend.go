@@ -151,5 +151,10 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Service:   NewPersonalAccountAPI(apiBackend, nonceLock),
 			Name:      "internal-personal",
 		},
+		{
+			Namespace: "mev",
+			Service:   NewMevAPI(apiBackend),
+			Name:      "internal-mev",
+		},
 	}
 }
