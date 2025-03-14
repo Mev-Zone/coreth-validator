@@ -533,3 +533,19 @@ func (b *EthAPIBackend) MinRequiredTip(ctx context.Context, header *types.Header
 func (b *EthAPIBackend) isLatestAndAllowed(number rpc.BlockNumber) bool {
 	return number.IsLatest() && b.IsAllowUnfinalizedQueries()
 }
+
+func (b *EthAPIBackend) MevRunning() bool {
+	return b.eth.Miner().MevRunning()
+}
+
+func (b *EthAPIBackend) MevParams() *types.MevParams {
+	return b.eth.Miner().MevParams()
+}
+
+func (b *EthAPIBackend) SendBid(ctx context.Context, bid *types.BidArgs) (common.Hash, error) {
+	return b.eth.Miner().SendBid(ctx, bid)
+}
+
+func (b *EthAPIBackend) BestBidGasFee(parentHash common.Hash) *big.Int {
+	return b.eth.Miner().BestPackedBlockReward(parentHash)
+}
