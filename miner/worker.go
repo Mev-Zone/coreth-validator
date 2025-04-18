@@ -59,6 +59,14 @@ const (
 	// Leaves 256 KBs for other sections of the block (limit is 2MB).
 	// This should suffice for atomic txs, proposervm header, and serialization overhead.
 	targetTxsSize = 1792 * units.KiB
+	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
+	chainHeadChanSize = 10
+	// the default to wait for the mev miner to finish
+	waitMEVMinerEndTimeLimit = 50 * time.Millisecond
+)
+
+const (
+	commitInterruptBetterBid = iota
 )
 
 // environment is the worker's current environment and holds all of the current state information.
@@ -87,9 +95,25 @@ type environment struct {
 	start time.Time // Time that block building began
 }
 
+// discard terminates the background prefetcher go-routine. It should
+// always be called for all created environment instances otherwise
+// the go-routine leak can happen.
+func (env *environment) discard() {
+	if env.state == nil {
+		return
+	}
+	env.state.StopPrefetcher()
+}
+
+type bidFetcher interface {
+	GetBestBid(parentHash common.Hash) *BidRuntime
+	GetSimulatingBid(prevBlockHash common.Hash) *BidRuntime
+}
+
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
+	bidFetcher  bidFetcher
 	config      *Config
 	chainConfig *params.ChainConfig
 	engine      consensus.Engine
@@ -122,6 +146,10 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 	}
 
 	return worker
+}
+
+func (w *worker) setBestBidFetcher(fetcher bidFetcher) {
+	w.bidFetcher = fetcher
 }
 
 // setEtherbase sets the etherbase used to initialize the block coinbase field.
@@ -239,6 +267,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 			localBlobTxs[account] = txs
 		}
 	}
+	balanceBefore := env.state.GetBalance(env.header.Coinbase)
 	// Fill the block with all available pending transactions.
 	if len(localPlainTxs) > 0 || len(localBlobTxs) > 0 {
 		plainTxs := newTransactionsByPriceAndNonce(env.signer, localPlainTxs, env.header.BaseFee)
@@ -253,7 +282,124 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		w.commitTransactions(env, plainTxs, blobTxs, env.header.Coinbase)
 	}
 
+	if w.bidFetcher != nil {
+		currentBurn := new(uint256.Int).Sub(env.state.GetBalance(env.header.Coinbase), balanceBefore)
+		if pendingBid := w.bidFetcher.GetSimulatingBid(header.ParentHash); pendingBid != nil {
+			waitBidTimer := time.NewTimer(waitMEVMinerEndTimeLimit)
+			defer waitBidTimer.Stop()
+			select {
+			case <-waitBidTimer.C:
+			case <-pendingBid.finished:
+			}
+		}
+
+		bestBid := w.bidFetcher.GetBestBid(header.ParentHash)
+
+		if bestBid != nil {
+			log.Info("BidSimulator: final compare", "block", header.Number.Uint64(),
+				"validatorBurn", currentBurn.String(),
+				"validatorRewards", bestBid.packedValidatorReward.String(),
+				"blockBuilderBurn", bestBid.packedBlockReward.String())
+
+			mevProfit := new(big.Int).Add(bestBid.packedValidatorReward, bestBid.packedBlockReward)
+
+			if currentBurn.CmpBig(mevProfit) < 0 {
+				env = bestBid.env
+
+				log.Info("[BUILDER BLOCK]",
+					"block", header.Number.Uint64(),
+					"builder", bestBid.bid.Builder,
+					"burn", bestBid.packedBlockReward,
+					"validatorReward", bestBid.packedValidatorReward,
+					"bid", bestBid.bid.Hash().TerminalString(),
+				)
+			}
+		}
+	}
+
 	return w.commit(env)
+}
+
+func (w *worker) createEnvironment(parentHash common.Hash) (*environment, error) {
+	tstart := w.clock.Time()
+	timestamp := uint64(tstart.Unix())
+	parent := w.chain.CurrentBlock()
+
+	if parentHash != (common.Hash{}) {
+		block := w.chain.GetBlockByHash(parentHash)
+		if block == nil {
+			return nil, errors.New("missing parent")
+		}
+		parent = block.Header()
+	}
+
+	// Note: in order to support asynchronous block production, blocks are allowed to have
+	// the same timestamp as their parent. This allows more than one block to be produced
+	// per second.
+	if parent.Time >= timestamp {
+		timestamp = parent.Time
+	}
+
+	gasLimit, err := customheader.GasLimit(w.chainConfig, parent, timestamp)
+	if err != nil {
+		return nil, fmt.Errorf("calculating new gas limit: %w", err)
+	}
+	baseFee, err := customheader.BaseFee(w.chainConfig, parent, timestamp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
+	}
+
+	header := &types.Header{
+		ParentHash: parent.Hash(),
+		Number:     new(big.Int).Add(parent.Number, common.Big1),
+		GasLimit:   gasLimit,
+		Time:       timestamp,
+		BaseFee:    baseFee,
+	}
+
+	// Apply EIP-4844, EIP-4788.
+	if w.chainConfig.IsCancun(header.Number, header.Time) {
+		var excessBlobGas uint64
+		if w.chainConfig.IsCancun(parent.Number, parent.Time) {
+			excessBlobGas = eip4844.CalcExcessBlobGas(*parent.ExcessBlobGas, *parent.BlobGasUsed)
+		} else {
+			// For the first post-fork block, both parent.data_gas_used and parent.excess_data_gas are evaluated as 0
+			excessBlobGas = eip4844.CalcExcessBlobGas(0, 0)
+		}
+		header.BlobGasUsed = new(uint64)
+		header.ExcessBlobGas = &excessBlobGas
+		header.ParentBeaconRoot = w.beaconRoot
+	}
+
+	if w.coinbase == (common.Address{}) {
+		return nil, errors.New("cannot mine without etherbase")
+	}
+	header.Coinbase = w.coinbase
+	if err := w.engine.Prepare(w.chain, header); err != nil {
+		return nil, fmt.Errorf("failed to prepare header for mining: %w", err)
+	}
+
+	currentState, err := w.chain.StateAt(parent.Root)
+	if err != nil {
+		return nil, err
+	}
+	capacity, err := customheader.GasCapacity(w.chainConfig, parent, header.Time)
+	if err != nil {
+		return nil, fmt.Errorf("calculating gas capacity: %w", err)
+	}
+
+	return &environment{
+		signer:           types.MakeSigner(w.chainConfig, header.Number, header.Time),
+		state:            currentState,
+		parent:           parent,
+		header:           header,
+		tcount:           0,
+		gasPool:          new(core.GasPool).AddGas(capacity),
+		rules:            w.chainConfig.Rules(header.Number, header.Time),
+		predicateContext: &precompileconfig.PredicateContext{SnowCtx: w.chainConfig.SnowCtx, ProposerVMBlockCtx: nil},
+		predicateResults: predicate.NewResults(),
+		start:            tstart,
+	}, nil
 }
 
 func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.PredicateContext, parent *types.Header, header *types.Header, tstart time.Time) (*environment, error) {

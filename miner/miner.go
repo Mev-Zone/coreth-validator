@@ -49,16 +49,24 @@ type Backend interface {
 type Config struct {
 	Etherbase                    common.Address `toml:",omitempty"` // Public address for block mining rewards
 	TestOnlyAllowDuplicateBlocks bool           // Allow mining of duplicate blocks (used in tests only)
+
+	Mev MevConfig // Mev configuration
 }
 
 type Miner struct {
-	worker *worker
+	worker       *worker
+	bidSimulator *bidSimulator
 }
 
 func New(eth Backend, config *Config, chainConfig *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, clock *mockable.Clock) *Miner {
-	return &Miner{
+	miner := &Miner{
 		worker: newWorker(config, chainConfig, engine, eth, mux, clock),
 	}
+
+	miner.bidSimulator = newBidSimulator(&config.Mev, eth.TxPool().GasTip(), eth, eth.BlockChain().Config(), miner.worker)
+	miner.worker.setBestBidFetcher(miner.bidSimulator)
+
+	return miner
 }
 
 func (miner *Miner) SetEtherbase(addr common.Address) {

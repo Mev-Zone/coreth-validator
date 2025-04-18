@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/coreth/miner"
 	"github.com/spf13/cast"
 )
 
@@ -241,7 +242,8 @@ type Config struct {
 	WarpOffChainMessages []hexutil.Bytes `json:"warp-off-chain-messages"`
 
 	// RPC settings
-	HttpBodyLimit uint64 `json:"http-body-limit"`
+	HttpBodyLimit uint64          `json:"http-body-limit"`
+	Mev           miner.MevConfig `json:"mev"`
 }
 
 // TxPoolConfig contains the transaction pool config to be passed
