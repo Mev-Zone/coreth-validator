@@ -36,6 +36,7 @@ import (
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/core/bloombits"
 	"github.com/ava-labs/coreth/core/state"
+	bidTypes "github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/accounts"
@@ -113,9 +114,9 @@ type Backend interface {
 	// MevRunning return true if mev is running
 	MevRunning() bool
 	// MevParams returns the static params of mev
-	MevParams() *types.MevParams
+	MevParams() *bidTypes.MevParams
 	// SendBid receives bid from the builders.
-	SendBid(ctx context.Context, bid *types.BidArgs) (common.Hash, error)
+	SendBid(ctx context.Context, bid *bidTypes.BidArgs) (common.Hash, error)
 	// BestBidGasFee returns the gas fee of the best bid for the given parent hash.
 	BestBidGasFee(parentHash common.Hash) *big.Int
 }

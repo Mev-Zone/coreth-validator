@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/coreth/core/bloombits"
 	"github.com/ava-labs/coreth/core/state"
 	"github.com/ava-labs/coreth/core/txpool"
+	bidTypes "github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/eth/gasprice"
 	"github.com/ava-labs/coreth/eth/tracers"
 	"github.com/ava-labs/coreth/internal/ethapi"
@@ -539,11 +540,11 @@ func (b *EthAPIBackend) MevRunning() bool {
 	return b.eth.Miner().MevRunning()
 }
 
-func (b *EthAPIBackend) MevParams() *types.MevParams {
+func (b *EthAPIBackend) MevParams() *bidTypes.MevParams {
 	return b.eth.Miner().MevParams()
 }
 
-func (b *EthAPIBackend) SendBid(ctx context.Context, bid *types.BidArgs) (common.Hash, error) {
+func (b *EthAPIBackend) SendBid(ctx context.Context, bid *bidTypes.BidArgs) (common.Hash, error) {
 	return b.eth.Miner().SendBid(ctx, bid)
 }
 

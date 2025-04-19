@@ -3,11 +3,11 @@ package ethapi
 import (
 	"context"
 	"fmt"
-	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/params"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/libevm/common"
 )
 
 // MevAPI implements the interfaces that defined in the BEP-322.

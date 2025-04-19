@@ -2,13 +2,15 @@ package types
 
 import (
 	"fmt"
-	mapset "github.com/deckarep/golang-set/v2"
 	"math/big"
 	"sync/atomic"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/crypto"
+	mapset "github.com/deckarep/golang-set/v2"
+
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/crypto"
 )
 
 const TxDecodeConcurrencyForPerBid = 5
@@ -35,7 +37,7 @@ func (b *BidArgs) EcrecoverSender() (common.Address, error) {
 	return crypto.PubkeyToAddress(*pk), nil
 }
 
-func (b *BidArgs) ToBid(builder common.Address, signer Signer) (*Bid, error) {
+func (b *BidArgs) ToBid(builder common.Address, signer types.Signer) (*Bid, error) {
 	txs, err := b.RawBid.DecodeTxs(signer)
 	if err != nil {
 		return nil, err
@@ -47,7 +49,7 @@ func (b *BidArgs) ToBid(builder common.Address, signer Signer) (*Bid, error) {
 	unRevertibleHashes := mapset.NewThreadUnsafeSet[common.Hash](b.RawBid.UnRevertible...)
 
 	if len(b.BurnTx) != 0 {
-		var burnTx = new(Transaction)
+		var burnTx = new(types.Transaction)
 		err = burnTx.UnmarshalBinary(b.BurnTx)
 		if err != nil {
 			return nil, err
@@ -57,7 +59,7 @@ func (b *BidArgs) ToBid(builder common.Address, signer Signer) (*Bid, error) {
 	}
 
 	if len(b.PayBidTx) != 0 {
-		var payBidTx = new(Transaction)
+		var payBidTx = new(types.Transaction)
 		err = payBidTx.UnmarshalBinary(b.PayBidTx)
 		if err != nil {
 			return nil, err
@@ -98,21 +100,21 @@ type RawBid struct {
 	hash atomic.Value
 }
 
-func (b *RawBid) DecodeTxs(signer Signer) ([]*Transaction, error) {
+func (b *RawBid) DecodeTxs(signer types.Signer) ([]*types.Transaction, error) {
 	if len(b.Txs) == 0 {
-		return []*Transaction{}, nil
+		return []*types.Transaction{}, nil
 	}
 
 	txChan := make(chan int, len(b.Txs))
-	bidTxs := make([]*Transaction, len(b.Txs))
-	decode := func(txBytes hexutil.Bytes) (*Transaction, error) {
-		tx := new(Transaction)
+	bidTxs := make([]*types.Transaction, len(b.Txs))
+	decode := func(txBytes hexutil.Bytes) (*types.Transaction, error) {
+		tx := new(types.Transaction)
 		err := tx.UnmarshalBinary(txBytes)
 		if err != nil {
 			return nil, err
 		}
 
-		_, err = Sender(signer, tx)
+		_, err = types.Sender(signer, tx)
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +166,7 @@ func (b *RawBid) Hash() common.Hash {
 		return hash.(common.Hash)
 	}
 
-	h := rlpHash(b)
+	h := types.RLPHash(b)
 	b.hash.Store(h)
 
 	return h
@@ -175,7 +177,7 @@ type Bid struct {
 	Builder          common.Address
 	BlockNumber      uint64
 	ParentHash       common.Hash
-	Txs              Transactions
+	Txs              types.Transactions
 	UnRevertible     mapset.Set[common.Hash]
 	GasUsed          uint64
 	GasFee           *big.Int

@@ -13,15 +13,16 @@ import (
 
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/core/txpool"
-	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/core/vm"
+	bidTypes "github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/miner/builderclient"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/rpc"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/core/vm"
+	"github.com/ava-labs/libevm/event"
+	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/metrics"
 )
 
 const (
@@ -66,7 +67,7 @@ type simBidReq struct {
 
 // newBidPackage is the warp of a new bid and a feedback channel
 type newBidPackage struct {
-	bid      *types.Bid
+	bid      *bidTypes.Bid
 	feedback chan error
 }
 
@@ -346,7 +347,7 @@ func (b *bidSimulator) clearLoop() {
 
 // sendBid checks if the bid is already exists or if the builder sends too many bids,
 // if yes, return error, if not, add bid into newBid chan waiting for judge profit.
-func (b *bidSimulator) sendBid(_ context.Context, bid *types.Bid) error {
+func (b *bidSimulator) sendBid(_ context.Context, bid *bidTypes.Bid) error {
 	metrics.GetOrRegisterCounter("bid/received", nil).Inc(1)
 	timer := time.NewTimer(1 * time.Second)
 	defer timer.Stop()
@@ -357,14 +358,14 @@ func (b *bidSimulator) sendBid(_ context.Context, bid *types.Bid) error {
 	case b.newBidCh <- newBidPackage{bid: bid, feedback: replyCh}:
 		b.AddPending(bid.BlockNumber, bid.Builder, bid.Hash())
 	case <-timer.C:
-		return types.ErrMevBusy
+		return bidTypes.ErrMevBusy
 	}
 
 	select {
 	case reply := <-replyCh:
 		return reply
 	case <-timer.C:
-		return types.ErrMevBusy
+		return bidTypes.ErrMevBusy
 	}
 }
 
@@ -655,7 +656,7 @@ func (b *bidSimulator) reportIssue(bidRuntime *BidRuntime, err error) {
 
 	cli := b.builders[bidRuntime.bid.Builder]
 	if cli != nil {
-		err = cli.ReportIssue(context.Background(), &types.BidIssue{
+		err = cli.ReportIssue(context.Background(), &bidTypes.BidIssue{
 			Builder: bidRuntime.bid.Builder,
 			BidHash: bidRuntime.bid.Hash(),
 			Message: err.Error(),
@@ -668,7 +669,7 @@ func (b *bidSimulator) reportIssue(bidRuntime *BidRuntime, err error) {
 }
 
 type BidRuntime struct {
-	bid *types.Bid
+	bid *bidTypes.Bid
 
 	env *environment
 
@@ -687,7 +688,7 @@ type BidRuntime struct {
 	balanceBeforeBurn   *big.Int
 }
 
-func newBidRuntime(newBid *types.Bid, validatorCommission uint64) (*BidRuntime, error) {
+func newBidRuntime(newBid *bidTypes.Bid, validatorCommission uint64) (*BidRuntime, error) {
 	// check the block reward and validator reward of the newBid
 	expectedBlockReward := newBid.GasFee
 	expectedValidatorReward := new(big.Int).Sub(newBid.MevRewards, newBid.BurnAmounts)
@@ -781,7 +782,8 @@ func (r *BidRuntime) commitTransaction(chain *core.BlockChain, chainConfig *para
 		}
 	}
 
-	if env.rules.IsDurango {
+	rulesExtra := params.GetRulesExtra(env.rules)
+	if rulesExtra.IsDurango {
 		results, err := core.CheckPredicates(env.rules, env.predicateContext, tx)
 		if err != nil {
 			log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
@@ -789,7 +791,11 @@ func (r *BidRuntime) commitTransaction(chain *core.BlockChain, chainConfig *para
 		}
 		env.predicateResults.SetTxResults(tx.Hash(), results)
 
-		blockContext = core.NewEVMBlockContextWithPredicateResults(env.header, chain, &coinbase, env.predicateResults)
+		predicateResultsBytes, err := env.predicateResults.Bytes()
+		if err != nil {
+			return fmt.Errorf("failed to marshal predicate results: %w", err)
+		}
+		blockContext = core.NewEVMBlockContextWithPredicateResults(rulesExtra.AvalancheRules, env.header, chain, &coinbase, predicateResultsBytes)
 	} else {
 		blockContext = core.NewEVMBlockContext(env.header, chain, &coinbase)
 	}

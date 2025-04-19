@@ -340,11 +340,12 @@ func (w *worker) createEnvironment(parentHash common.Hash) (*environment, error)
 		timestamp = parent.Time
 	}
 
-	gasLimit, err := customheader.GasLimit(w.chainConfig, parent, timestamp)
+	chainExtra := params.GetExtra(w.chainConfig)
+	gasLimit, err := customheader.GasLimit(chainExtra, parent, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("calculating new gas limit: %w", err)
 	}
-	baseFee, err := customheader.BaseFee(w.chainConfig, parent, timestamp)
+	baseFee, err := customheader.BaseFee(chainExtra, parent, timestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 	}
@@ -383,7 +384,8 @@ func (w *worker) createEnvironment(parentHash common.Hash) (*environment, error)
 	if err != nil {
 		return nil, err
 	}
-	capacity, err := customheader.GasCapacity(w.chainConfig, parent, header.Time)
+	chainConfigExtra := params.GetExtra(w.chainConfig)
+	capacity, err := customheader.GasCapacity(chainConfigExtra, parent, header.Time)
 	if err != nil {
 		return nil, fmt.Errorf("calculating gas capacity: %w", err)
 	}
@@ -395,8 +397,8 @@ func (w *worker) createEnvironment(parentHash common.Hash) (*environment, error)
 		header:           header,
 		tcount:           0,
 		gasPool:          new(core.GasPool).AddGas(capacity),
-		rules:            w.chainConfig.Rules(header.Number, header.Time),
-		predicateContext: &precompileconfig.PredicateContext{SnowCtx: w.chainConfig.SnowCtx, ProposerVMBlockCtx: nil},
+		rules:            w.chainConfig.Rules(header.Number, params.IsMergeTODO, header.Time),
+		predicateContext: &precompileconfig.PredicateContext{SnowCtx: chainConfigExtra.SnowCtx, ProposerVMBlockCtx: nil},
 		predicateResults: predicate.NewResults(),
 		start:            tstart,
 	}, nil
