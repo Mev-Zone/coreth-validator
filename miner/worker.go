@@ -52,6 +52,7 @@ import (
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/event"
 	"github.com/ava-labs/libevm/log"
+	"github.com/ava-labs/libevm/metrics"
 	"github.com/holiman/uint256"
 )
 
@@ -304,13 +305,23 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 			mevProfit := new(big.Int).Add(bestBid.packedValidatorReward, bestBid.packedBlockReward)
 
 			if currentBurn.CmpBig(mevProfit) < 0 {
+				metrics.GetOrRegisterCounter("bid/profitable", nil).Inc(1)
 				env = bestBid.env
 
-				log.Info("[BUILDER BLOCK]",
+				log.Info("[BUILDER BLOCK] Bid accepted profitable",
 					"block", header.Number.Uint64(),
 					"builder", bestBid.bid.Builder,
 					"burn", bestBid.packedBlockReward,
 					"validatorReward", bestBid.packedValidatorReward,
+					"bid", bestBid.bid.Hash().TerminalString(),
+				)
+			} else {
+				metrics.GetOrRegisterCounter("bid/unprofitable", nil).Inc(1)
+				log.Info("[BUILDER BLOCK] Bid skipped unprofitable",
+					"block", header.Number.Uint64(),
+					"builder", bestBid.bid.Builder,
+					"mevProfit", mevProfit,
+					"currentBurn", currentBurn,
 					"bid", bestBid.bid.Hash().TerminalString(),
 				)
 			}

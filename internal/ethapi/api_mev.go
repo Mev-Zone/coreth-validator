@@ -8,6 +8,7 @@ import (
 	"github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
+	"github.com/ava-labs/libevm/metrics"
 )
 
 // MevAPI implements the interfaces that defined in the BEP-322.
@@ -40,6 +41,7 @@ func (m *MevAPI) SendBid(ctx context.Context, args types.BidArgs) (common.Hash, 
 
 	// only support bidding for the next block not for the future block
 	if rawBid.BlockNumber != currentHeader.Number.Uint64()+1 {
+		metrics.GetOrRegisterCounter("bid/slow", nil).Inc(1)
 		return common.Hash{}, types.NewInvalidBidError("stale block number or block in future")
 	}
 
