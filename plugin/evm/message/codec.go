@@ -1,4 +1,4 @@
-// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2019-2025, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package message
@@ -22,12 +22,9 @@ func init() {
 	c := linearcodec.NewDefault()
 
 	errs := wrappers.Errs{}
-	// Gossip types removed from codec
-	c.SkipRegistrations(2)
+	// Gossip types and sync summary type removed from codec
+	c.SkipRegistrations(3)
 	errs.Add(
-		// Types for state sync frontier consensus
-		c.RegisterType(SyncSummary{}),
-
 		// state sync types
 		c.RegisterType(BlockRequest{}),
 		c.RegisterType(BlockResponse{}),
