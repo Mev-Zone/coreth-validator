@@ -47,6 +47,7 @@ import (
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/core/bloombits"
 	"github.com/ava-labs/coreth/core/state"
+	bidTypes "github.com/ava-labs/coreth/core/types"
 	"github.com/ava-labs/coreth/internal/blocktest"
 	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap3"
@@ -634,6 +635,12 @@ func (b testBackend) IsArchive() bool {
 func (b testBackend) HistoricalProofQueryWindow() (queryWindow uint64) {
 	panic("implement me")
 }
+func (b testBackend) MevRunning() bool               { panic("implement me") }
+func (b testBackend) MevParams() *bidTypes.MevParams { panic("implement me") }
+func (b testBackend) SendBid(ctx context.Context, bid *bidTypes.BidArgs) (common.Hash, error) {
+	panic("implement me")
+}
+func (b testBackend) BestBidGasFee(parentHash common.Hash) *big.Int { panic("implement me") }
 
 func TestEstimateGas(t *testing.T) {
 	t.Parallel()

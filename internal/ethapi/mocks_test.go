@@ -19,6 +19,7 @@ import (
 	core "github.com/ava-labs/coreth/core"
 	bloombits "github.com/ava-labs/coreth/core/bloombits"
 	state "github.com/ava-labs/coreth/core/state"
+	bidTypes "github.com/ava-labs/coreth/core/types"
 	params "github.com/ava-labs/coreth/params"
 	rpc "github.com/ava-labs/coreth/rpc"
 	accounts "github.com/ava-labs/libevm/accounts"
@@ -768,4 +769,33 @@ func (m *MockBackend) UnprotectedAllowed(tx *types.Transaction) bool {
 func (mr *MockBackendMockRecorder) UnprotectedAllowed(tx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnprotectedAllowed", reflect.TypeOf((*MockBackend)(nil).UnprotectedAllowed), tx)
+}
+
+func (m *MockBackend) MevRunning() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MevRunning")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+func (m *MockBackend) MevParams() *bidTypes.MevParams {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MevParams")
+	ret0, _ := ret[0].(*bidTypes.MevParams)
+	return ret0
+}
+
+func (m *MockBackend) SendBid(ctx context.Context, bid *bidTypes.BidArgs) (common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendBid", bid)
+	ret0, _ := ret[0].(common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (m *MockBackend) BestBidGasFee(parentHash common.Hash) *big.Int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BestBidGasFee", parentHash)
+	ret0, _ := ret[0].(*big.Int)
+	return ret0
 }
