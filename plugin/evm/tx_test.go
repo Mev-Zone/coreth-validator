@@ -15,6 +15,7 @@ import (
 
 	"github.com/ava-labs/coreth/params/extras"
 	"github.com/ava-labs/coreth/plugin/evm/atomic"
+	atomicvm "github.com/ava-labs/coreth/plugin/evm/atomic/vm"
 	"github.com/ava-labs/coreth/utils"
 
 	avalancheatomic "github.com/ava-labs/avalanchego/chains/atomic"
@@ -114,15 +115,15 @@ func executeTxTest(t *testing.T, test atomicTxTest) {
 	}
 
 	lastAcceptedBlock := tvm.vm.LastAcceptedExtendedBlock()
-	backend := &atomic.VerifierBackend{
+	backend := &atomicvm.VerifierBackend{
 		Ctx:          tvm.vm.ctx,
-		Fx:           &tvm.vm.fx,
+		Fx:           &tvm.vm.atomicVM.Fx,
 		Rules:        rules,
 		Bootstrapped: tvm.vm.bootstrapped.Get(),
 		BlockFetcher: tvm.vm,
-		SecpCache:    tvm.vm.secpCache,
+		SecpCache:    tvm.vm.atomicVM.SecpCache,
 	}
-	if err := tx.UnsignedAtomicTx.Visit(&atomic.SemanticVerifier{
+	if err := tx.UnsignedAtomicTx.Visit(&atomicvm.SemanticVerifier{
 		Backend: backend,
 		Tx:      tx,
 		Parent:  lastAcceptedBlock,

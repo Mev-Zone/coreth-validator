@@ -63,6 +63,7 @@ import (
 	"github.com/ava-labs/coreth/eth"
 	"github.com/ava-labs/coreth/params"
 	atomictxpool "github.com/ava-labs/coreth/plugin/evm/atomic/txpool"
+	atomicvm "github.com/ava-labs/coreth/plugin/evm/atomic/vm"
 	"github.com/ava-labs/coreth/plugin/evm/customtypes"
 	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/core/types"
@@ -474,7 +475,7 @@ func TestImportMissingUTXOs(t *testing.T) {
 	vm2Blk, err := vm2.ParseBlock(context.Background(), blk.Bytes())
 	require.NoError(t, err)
 	err = vm2Blk.Verify(context.Background())
-	require.ErrorIs(t, err, errMissingUTXOs)
+	require.ErrorIs(t, err, atomicvm.ErrMissingUTXOs)
 
 	// This should not result in a bad block since the missing UTXO should
 	// prevent InsertBlockManual from being called.
@@ -880,8 +881,8 @@ func testConflictingImportTxs(t *testing.T, fork upgradetest.Fork) {
 		t.Fatal(err)
 	}
 
-	if err := parsedBlock.Verify(context.Background()); !errors.Is(err, atomic.ErrConflictingAtomicInputs) {
-		t.Fatalf("Expected to fail with err: %s, but found err: %s", atomic.ErrConflictingAtomicInputs, err)
+	if err := parsedBlock.Verify(context.Background()); !errors.Is(err, atomicvm.ErrConflictingAtomicInputs) {
+		t.Fatalf("Expected to fail with err: %s, but found err: %s", atomicvm.ErrConflictingAtomicInputs, err)
 	}
 
 	if !rules.IsApricotPhase5 {
@@ -917,8 +918,8 @@ func testConflictingImportTxs(t *testing.T, fork upgradetest.Fork) {
 		t.Fatal(err)
 	}
 
-	if err := parsedBlock.Verify(context.Background()); !errors.Is(err, atomic.ErrConflictingAtomicInputs) {
-		t.Fatalf("Expected to fail with err: %s, but found err: %s", atomic.ErrConflictingAtomicInputs, err)
+	if err := parsedBlock.Verify(context.Background()); !errors.Is(err, atomicvm.ErrConflictingAtomicInputs) {
+		t.Fatalf("Expected to fail with err: %s, but found err: %s", atomicvm.ErrConflictingAtomicInputs, err)
 	}
 }
 
@@ -1486,7 +1487,7 @@ func TestBonusBlocksTxs(t *testing.T) {
 	}
 
 	// Make [blk] a bonus block.
-	tvm.vm.atomicBackend.AddBonusBlock(blk.Height(), blk.ID())
+	tvm.vm.atomicVM.AtomicBackend.AddBonusBlock(blk.Height(), blk.ID())
 
 	// Remove the UTXOs from shared memory, so that non-bonus blocks will fail verification
 	if err := tvm.vm.ctx.SharedMemory.Apply(map[ids.ID]*avalancheatomic.Requests{tvm.vm.ctx.XChainID: {RemoveRequests: [][]byte{inputID[:]}}}); err != nil {
@@ -2393,10 +2394,10 @@ func TestEmptyBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := tvm.vm.ParseBlock(context.Background(), emptyBlock.Bytes()); !errors.Is(err, errEmptyBlock) {
+	if _, err := tvm.vm.ParseBlock(context.Background(), emptyBlock.Bytes()); !errors.Is(err, atomicvm.ErrEmptyBlock) {
 		t.Fatalf("VM should have failed with errEmptyBlock but got %s", err.Error())
 	}
-	if err := emptyBlock.Verify(context.Background()); !errors.Is(err, errEmptyBlock) {
+	if err := emptyBlock.Verify(context.Background()); !errors.Is(err, atomicvm.ErrEmptyBlock) {
 		t.Fatalf("block should have failed verification with errEmptyBlock but got %s", err.Error())
 	}
 }
@@ -2947,7 +2948,7 @@ func TestReissueAtomicTx(t *testing.T) {
 	}
 
 	// Check that [importTx] has been indexed correctly after [blkB] is accepted.
-	_, height, err := tvm.vm.atomicTxRepository.GetByTxID(importTx.ID())
+	_, height, err := tvm.vm.atomicVM.AtomicTxRepository.GetByTxID(importTx.ID())
 	if err != nil {
 		t.Fatal(err)
 	} else if height != blkB.Height() {
@@ -3663,7 +3664,8 @@ func TestExtraStateChangeAtomicGasLimitExceeded(t *testing.T) {
 	}
 
 	// Hack: test [onExtraStateChange] directly to ensure it catches the atomic gas limit error correctly.
-	if _, _, err := tvm2.vm.onExtraStateChange(ethBlk2, nil, state); err == nil || !strings.Contains(err.Error(), "exceeds atomic gas limit") {
+	onExtraStateChangeFn := tvm2.vm.extensionConfig.ConsensusCallbacks.OnExtraStateChange
+	if _, _, err := onExtraStateChangeFn(ethBlk2, nil, state); err == nil || !strings.Contains(err.Error(), "exceeds atomic gas limit") {
 		t.Fatalf("Expected block to fail verification due to exceeded atomic gas limit, but found error: %v", err)
 	}
 }

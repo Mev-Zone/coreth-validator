@@ -14,20 +14,20 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 )
 
-var _ sync.SummaryProvider = (*summaryProvider)(nil)
+var _ sync.SummaryProvider = (*SummaryProvider)(nil)
 
-type summaryProvider struct {
+// SummaryProvider is the summary provider that provides the state summary for the atomic trie.
+type SummaryProvider struct {
 	trie *state.AtomicTrie
 }
 
-func NewSummaryProvider(atomicTrie *state.AtomicTrie) *summaryProvider {
-	return &summaryProvider{
-		trie: atomicTrie,
-	}
+// Initialize initializes the summary provider with the atomic trie.
+func (a *SummaryProvider) Initialize(trie *state.AtomicTrie) {
+	a.trie = trie
 }
 
 // StateSummaryAtBlock returns the block state summary at [blk] if valid.
-func (a *summaryProvider) StateSummaryAtBlock(blk *types.Block) (block.StateSummary, error) {
+func (a *SummaryProvider) StateSummaryAtBlock(blk *types.Block) (block.StateSummary, error) {
 	height := blk.NumberU64()
 	atomicRoot, err := a.trie.Root(height)
 	if err != nil {
