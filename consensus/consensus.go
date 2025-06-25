@@ -31,10 +31,10 @@ package consensus
 import (
 	"math/big"
 
-	"github.com/ava-labs/coreth/core/state"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/core/state"
+	"github.com/mev-zone/coreth-validator/params"
 )
 
 // ChainHeaderReader defines a small collection of methods needed to access the local

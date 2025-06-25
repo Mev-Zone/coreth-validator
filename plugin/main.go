@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/ulimit"
 	"github.com/ava-labs/avalanchego/vms/rpcchainvm"
 
-	"github.com/ava-labs/coreth/plugin/evm"
+	"github.com/mev-zone/coreth-validator/plugin/evm"
 )
 
 func main() {

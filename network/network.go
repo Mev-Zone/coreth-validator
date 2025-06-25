@@ -25,8 +25,8 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/version"
 
-	"github.com/ava-labs/coreth/network/stats"
-	"github.com/ava-labs/coreth/plugin/evm/message"
+	"github.com/mev-zone/coreth-validator/network/stats"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
 )
 
 // Minimum amount of time to handle a request

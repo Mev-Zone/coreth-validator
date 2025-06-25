@@ -31,11 +31,11 @@ package state
 import (
 	"math/big"
 
-	"github.com/ava-labs/coreth/plugin/evm/customtypes"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	ethstate "github.com/ava-labs/libevm/core/state"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customtypes"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 // StateDB structs within the ethereum protocol are used to store anything

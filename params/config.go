@@ -32,9 +32,9 @@ import (
 
 	"github.com/ava-labs/avalanchego/upgrade"
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/utils"
 	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 // Avalanche ChainIDs

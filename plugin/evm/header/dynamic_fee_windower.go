@@ -8,15 +8,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/plugin/evm/customtypes"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap3"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap4"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap5"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/etna"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customtypes"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap3"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap4"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap5"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/etna"
 )
 
 var (

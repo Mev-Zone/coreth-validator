@@ -34,7 +34,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/ava-labs/coreth/params"
+	"github.com/mev-zone/coreth-validator/params"
 )
 
 const ourPath = "github.com/ava-labs/coreth" // Path to our module

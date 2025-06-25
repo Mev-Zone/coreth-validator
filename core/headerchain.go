@@ -34,13 +34,13 @@ import (
 	mrand "math/rand"
 	"sync/atomic"
 
-	"github.com/ava-labs/coreth/consensus"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/lru"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/ethdb"
+	"github.com/mev-zone/coreth-validator/consensus"
+	"github.com/mev-zone/coreth-validator/params"
 )
 
 const (

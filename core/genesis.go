@@ -34,10 +34,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/coreth/core/state"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap3"
-	"github.com/ava-labs/coreth/triedb/pathdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/common/math"
@@ -48,6 +44,10 @@ import (
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/core/state"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap3"
+	"github.com/mev-zone/coreth-validator/triedb/pathdb"
 )
 
 //go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go

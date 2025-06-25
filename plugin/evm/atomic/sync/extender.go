@@ -7,11 +7,11 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/database/versiondb"
-	syncclient "github.com/ava-labs/coreth/sync/client"
+	syncclient "github.com/mev-zone/coreth-validator/sync/client"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic/state"
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	"github.com/ava-labs/coreth/plugin/evm/sync"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic/state"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	"github.com/mev-zone/coreth-validator/plugin/evm/sync"
 
 	"github.com/ava-labs/libevm/log"
 )

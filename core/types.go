@@ -28,9 +28,9 @@
 package core
 
 import (
-	"github.com/ava-labs/coreth/core/state"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
+	"github.com/mev-zone/coreth-validator/core/state"
 )
 
 // Validator is an interface which defines the standard for block validation. It

@@ -10,11 +10,11 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils"
 
-	"github.com/ava-labs/coreth/plugin/evm/customrawdb"
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	statesyncclient "github.com/ava-labs/coreth/sync/client"
-	"github.com/ava-labs/coreth/sync/handlers"
-	handlerstats "github.com/ava-labs/coreth/sync/handlers/stats"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customrawdb"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	statesyncclient "github.com/mev-zone/coreth-validator/sync/client"
+	"github.com/mev-zone/coreth-validator/sync/handlers"
+	handlerstats "github.com/mev-zone/coreth-validator/sync/handlers/stats"
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"

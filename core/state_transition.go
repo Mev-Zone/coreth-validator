@@ -32,14 +32,14 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	cmath "github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto/kzg4844"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 // ExecutionResult includes all output after executing given evm

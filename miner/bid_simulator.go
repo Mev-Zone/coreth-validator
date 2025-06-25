@@ -11,18 +11,18 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/txpool"
-	bidTypes "github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/miner/builderclient"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/event"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/metrics"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/core/txpool"
+	bidTypes "github.com/mev-zone/coreth-validator/core/types"
+	"github.com/mev-zone/coreth-validator/miner/builderclient"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/rpc"
 )
 
 const (

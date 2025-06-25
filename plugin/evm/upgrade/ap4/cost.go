@@ -9,7 +9,7 @@ import (
 	"math"
 
 	safemath "github.com/ava-labs/avalanchego/utils/math"
-	"github.com/ava-labs/coreth/utils"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 const (

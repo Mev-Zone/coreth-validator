@@ -10,12 +10,12 @@ import (
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
-	"github.com/ava-labs/coreth/predicate"
-	warpValidators "github.com/ava-labs/coreth/warp/validators"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/log"
+	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
+	"github.com/mev-zone/coreth-validator/predicate"
+	warpValidators "github.com/mev-zone/coreth-validator/warp/validators"
 )
 
 const (

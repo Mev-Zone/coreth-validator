@@ -9,11 +9,11 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/coreth/eth"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/plugin/evm/atomic/txpool"
-	"github.com/ava-labs/coreth/plugin/evm/config"
-	"github.com/ava-labs/coreth/plugin/evm/extension"
+	"github.com/mev-zone/coreth-validator/eth"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic/txpool"
+	"github.com/mev-zone/coreth-validator/plugin/evm/config"
+	"github.com/mev-zone/coreth-validator/plugin/evm/extension"
 )
 
 var _ extension.InnerVM = (*VM)(nil)

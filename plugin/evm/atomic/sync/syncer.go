@@ -14,9 +14,9 @@ import (
 
 	"github.com/ava-labs/libevm/common"
 
-	atomicstate "github.com/ava-labs/coreth/plugin/evm/atomic/state"
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	syncclient "github.com/ava-labs/coreth/sync/client"
+	atomicstate "github.com/mev-zone/coreth-validator/plugin/evm/atomic/state"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	syncclient "github.com/mev-zone/coreth-validator/sync/client"
 
 	"github.com/ava-labs/libevm/trie"
 )

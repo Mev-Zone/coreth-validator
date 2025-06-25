@@ -7,19 +7,19 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/core/state"
-	. "github.com/ava-labs/coreth/nativeasset"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	ethtypes "github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/core/state"
+	. "github.com/mev-zone/coreth-validator/nativeasset"
+	"github.com/mev-zone/coreth-validator/params"
 	"github.com/stretchr/testify/assert"
 
 	// Force import core to register the VM hooks.
 	// This allows testing the precompiles by exercising the EVM.
-	_ "github.com/ava-labs/coreth/core"
+	_ "github.com/mev-zone/coreth-validator/core"
 )
 
 type stateDB interface {

@@ -16,14 +16,14 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 
-	"github.com/ava-labs/coreth/consensus/dummy"
-	"github.com/ava-labs/coreth/eth"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/plugin/evm/config"
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	"github.com/ava-labs/coreth/plugin/evm/sync"
-	"github.com/ava-labs/coreth/sync/handlers"
+	"github.com/mev-zone/coreth-validator/consensus/dummy"
+	"github.com/mev-zone/coreth-validator/eth"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/plugin/evm/config"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	"github.com/mev-zone/coreth-validator/plugin/evm/sync"
+	"github.com/mev-zone/coreth-validator/sync/handlers"
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"

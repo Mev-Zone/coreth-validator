@@ -8,9 +8,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/rpc"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

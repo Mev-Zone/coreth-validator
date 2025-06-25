@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ava-labs/coreth/constants"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
+	"github.com/mev-zone/coreth-validator/constants"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 var (

@@ -4,8 +4,8 @@
 package extras
 
 import (
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
 	"github.com/ava-labs/libevm/common"
+	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
 )
 
 type Rules struct {

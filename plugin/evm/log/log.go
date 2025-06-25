@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ava-labs/coreth/log"
 	ethlog "github.com/ava-labs/libevm/log"
+	"github.com/mev-zone/coreth-validator/log"
 	"golang.org/x/exp/slog"
 )
 

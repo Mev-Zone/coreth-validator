@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/coreth/utils/utilstest"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/libevm/trie/trienode"
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/utils/utilstest"
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/ethdb"

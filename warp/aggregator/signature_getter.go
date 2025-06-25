@@ -13,7 +13,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/coreth/plugin/evm/message"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
 )
 
 const (

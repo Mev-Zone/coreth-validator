@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ava-labs/coreth/metrics/metricstest"
 	"github.com/ava-labs/libevm/metrics"
+	"github.com/mev-zone/coreth-validator/metrics/metricstest"
 )
 
 func TestGatherer_Gather(t *testing.T) {

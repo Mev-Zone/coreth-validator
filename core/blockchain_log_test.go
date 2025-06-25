@@ -8,15 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/coreth/accounts/abi"
-	"github.com/ava-labs/coreth/consensus/dummy"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap3"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
+	"github.com/mev-zone/coreth-validator/accounts/abi"
+	"github.com/mev-zone/coreth-validator/consensus/dummy"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap3"
 	"github.com/stretchr/testify/require"
 )
 

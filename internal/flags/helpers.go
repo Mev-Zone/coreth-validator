@@ -33,9 +33,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ava-labs/coreth/internal/version"
-	"github.com/ava-labs/coreth/params"
 	"github.com/mattn/go-isatty"
+	"github.com/mev-zone/coreth-validator/internal/version"
+	"github.com/mev-zone/coreth-validator/params"
 	"github.com/urfave/cli/v2"
 )
 

@@ -35,10 +35,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/coreth/consensus/misc/eip4844"
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/common/math"
@@ -46,6 +42,10 @@ import (
 	"github.com/ava-labs/libevm/crypto/kzg4844"
 	"github.com/ava-labs/libevm/log"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/consensus/misc/eip4844"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/rpc"
 )
 
 var (

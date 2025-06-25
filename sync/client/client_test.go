@@ -15,19 +15,19 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/coreth/consensus/dummy"
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	clientstats "github.com/ava-labs/coreth/sync/client/stats"
-	"github.com/ava-labs/coreth/sync/handlers"
-	handlerstats "github.com/ava-labs/coreth/sync/handlers/stats"
-	"github.com/ava-labs/coreth/sync/statesync/statesynctest"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/mev-zone/coreth-validator/consensus/dummy"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	clientstats "github.com/mev-zone/coreth-validator/sync/client/stats"
+	"github.com/mev-zone/coreth-validator/sync/handlers"
+	handlerstats "github.com/mev-zone/coreth-validator/sync/handlers/stats"
+	"github.com/mev-zone/coreth-validator/sync/statesync/statesynctest"
 )
 
 func TestGetCode(t *testing.T) {

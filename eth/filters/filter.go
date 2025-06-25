@@ -33,11 +33,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/coreth/core/bloombits"
-	"github.com/ava-labs/coreth/plugin/evm/customlogs"
-	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/core/bloombits"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customlogs"
+	"github.com/mev-zone/coreth-validator/rpc"
 )
 
 // Filter can be used to retrieve and filter logs.

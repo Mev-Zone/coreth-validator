@@ -34,12 +34,12 @@ import (
 	"runtime"
 	"runtime/debug"
 
-	"github.com/ava-labs/coreth/ethclient"
-	"github.com/ava-labs/coreth/rpc"
 	ethereum "github.com/ava-labs/libevm"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/ethclient"
+	"github.com/mev-zone/coreth-validator/rpc"
 )
 
 // Client is a wrapper around rpc.Client that implements geth-specific functionality.

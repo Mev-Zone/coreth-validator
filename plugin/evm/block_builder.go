@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer"
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/txpool"
-	atomictxpool "github.com/ava-labs/coreth/plugin/evm/atomic/txpool"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/core/txpool"
+	atomictxpool "github.com/mev-zone/coreth-validator/plugin/evm/atomic/txpool"
 
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"

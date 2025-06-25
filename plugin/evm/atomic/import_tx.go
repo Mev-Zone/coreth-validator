@@ -10,10 +10,10 @@ import (
 	"math/big"
 	"slices"
 
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap0"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap5"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap0"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap5"
 
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"

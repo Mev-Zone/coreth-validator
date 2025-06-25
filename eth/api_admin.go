@@ -35,9 +35,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/rlp"
+	"github.com/mev-zone/coreth-validator/core"
 )
 
 // AdminAPI is the collection of Ethereum full node related APIs for node

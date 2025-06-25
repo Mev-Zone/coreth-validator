@@ -34,12 +34,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/coreth/accounts/abi/bind"
-	"github.com/ava-labs/coreth/ethclient/simulated"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
+	"github.com/mev-zone/coreth-validator/accounts/abi/bind"
+	"github.com/mev-zone/coreth-validator/ethclient/simulated"
+	"github.com/mev-zone/coreth-validator/params"
 	"github.com/stretchr/testify/require"
 )
 

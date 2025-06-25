@@ -22,11 +22,11 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/logging"
 
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/txpool"
-	"github.com/ava-labs/coreth/eth"
-	"github.com/ava-labs/coreth/plugin/evm/config"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/core/txpool"
+	"github.com/mev-zone/coreth-validator/eth"
+	"github.com/mev-zone/coreth-validator/plugin/evm/config"
 )
 
 const pendingTxsBuffer = 10

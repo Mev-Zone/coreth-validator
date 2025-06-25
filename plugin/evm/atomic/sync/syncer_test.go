@@ -16,19 +16,19 @@ import (
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic/atomictest"
-	"github.com/ava-labs/coreth/plugin/evm/atomic/state"
-	atomicstate "github.com/ava-labs/coreth/plugin/evm/atomic/state"
-	"github.com/ava-labs/coreth/plugin/evm/config"
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	syncclient "github.com/ava-labs/coreth/sync/client"
-	"github.com/ava-labs/coreth/sync/handlers"
-	handlerstats "github.com/ava-labs/coreth/sync/handlers/stats"
-	"github.com/ava-labs/coreth/sync/statesync/statesynctest"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic/atomictest"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic/state"
+	atomicstate "github.com/mev-zone/coreth-validator/plugin/evm/atomic/state"
+	"github.com/mev-zone/coreth-validator/plugin/evm/config"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	syncclient "github.com/mev-zone/coreth-validator/sync/client"
+	"github.com/mev-zone/coreth-validator/sync/handlers"
+	handlerstats "github.com/mev-zone/coreth-validator/sync/handlers/stats"
+	"github.com/mev-zone/coreth-validator/sync/statesync/statesynctest"
 )
 
 const commitInterval = 1024

@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ava-labs/coreth/core/state/snapshot"
-	syncclient "github.com/ava-labs/coreth/sync/client"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/mev-zone/coreth-validator/core/state/snapshot"
+	syncclient "github.com/mev-zone/coreth-validator/sync/client"
 	"golang.org/x/sync/errgroup"
 )
 

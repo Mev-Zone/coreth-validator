@@ -4,9 +4,9 @@
 package handlers
 
 import (
-	"github.com/ava-labs/coreth/core/state/snapshot"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/core/state/snapshot"
 )
 
 type BlockProvider interface {

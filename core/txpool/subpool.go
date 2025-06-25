@@ -31,11 +31,11 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/event"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/core"
 )
 
 // LazyTransaction contains a small subset of the transaction properties that is

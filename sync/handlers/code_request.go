@@ -10,12 +10,12 @@ import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	"github.com/ava-labs/coreth/sync/handlers/stats"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/log"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	"github.com/mev-zone/coreth-validator/sync/handlers/stats"
 )
 
 // CodeRequestHandler is a peer.RequestHandler for message.CodeRequest

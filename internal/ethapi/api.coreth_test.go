@@ -8,10 +8,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/acp176"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/acp176"
 	"github.com/stretchr/testify/require"
 )
 

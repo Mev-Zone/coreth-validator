@@ -36,13 +36,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/coreth/internal/ethapi"
-	"github.com/ava-labs/coreth/rpc"
 	ethereum "github.com/ava-labs/libevm"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/event"
+	"github.com/mev-zone/coreth-validator/internal/ethapi"
+	"github.com/mev-zone/coreth-validator/rpc"
 )
 
 var (

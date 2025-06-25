@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/coreth/core/types"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/metrics"
+	"github.com/mev-zone/coreth-validator/core/types"
+	"github.com/mev-zone/coreth-validator/params"
 )
 
 // MevAPI implements the interfaces that defined in the BEP-322.

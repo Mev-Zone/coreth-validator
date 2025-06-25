@@ -6,11 +6,11 @@ package params
 import (
 	"math/big"
 
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/precompile/modules"
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
 	"github.com/ava-labs/libevm/common"
 	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/precompile/modules"
+	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
 )
 
 // libevmInit would ideally be a regular init() function, but it MUST be run

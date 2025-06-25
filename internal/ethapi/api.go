@@ -36,13 +36,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ava-labs/coreth/consensus"
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/state"
-	"github.com/ava-labs/coreth/eth/gasestimator"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/plugin/evm/customtypes"
-	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/accounts"
 	"github.com/ava-labs/libevm/accounts/keystore"
 	"github.com/ava-labs/libevm/accounts/scwallet"
@@ -58,6 +51,13 @@ import (
 	"github.com/ava-labs/libevm/trie"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/consensus"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/core/state"
+	"github.com/mev-zone/coreth-validator/eth/gasestimator"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customtypes"
+	"github.com/mev-zone/coreth-validator/rpc"
 	"github.com/tyler-smith/go-bip39"
 )
 

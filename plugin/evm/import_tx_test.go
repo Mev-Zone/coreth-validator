@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic"
-	atomicvm "github.com/ava-labs/coreth/plugin/evm/atomic/vm"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap0"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic"
+	atomicvm "github.com/mev-zone/coreth-validator/plugin/evm/atomic/vm"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap0"
+	"github.com/mev-zone/coreth-validator/utils"
 
 	avalancheatomic "github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"

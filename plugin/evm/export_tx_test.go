@@ -20,12 +20,12 @@ import (
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/plugin/evm/atomic"
-	atomicvm "github.com/ava-labs/coreth/plugin/evm/atomic/vm"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic"
+	atomicvm "github.com/mev-zone/coreth-validator/plugin/evm/atomic/vm"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 // createExportTxOptions adds funds to shared memory, imports them, and returns a list of export transactions
