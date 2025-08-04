@@ -28,9 +28,6 @@
 package core
 
 import (
-	"github.com/ava-labs/coreth/consensus"
-	"github.com/ava-labs/coreth/core/state/snapshot"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
@@ -38,6 +35,9 @@ import (
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/event"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/mev-zone/coreth-validator/consensus"
+	"github.com/mev-zone/coreth-validator/core/state/snapshot"
+	"github.com/mev-zone/coreth-validator/params"
 )
 
 // CurrentHeader retrieves the current head header of the canonical chain. The

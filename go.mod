@@ -1,4 +1,4 @@
-module github.com/ava-labs/coreth
+module github.com/mev-zone/coreth-validator
 
 go 1.23.9
 

@@ -9,15 +9,15 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/math"
 	"github.com/ava-labs/avalanchego/vms/components/gas"
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/plugin/evm/customtypes"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/acp176"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap0"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap1"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap5"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/cortina"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customtypes"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/acp176"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap0"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap1"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap5"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/cortina"
 	"github.com/stretchr/testify/require"
 )
 

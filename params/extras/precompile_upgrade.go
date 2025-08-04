@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/coreth/precompile/modules"
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/mev-zone/coreth-validator/precompile/modules"
+	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 var errNoKey = errors.New("PrecompileUpgrade cannot be empty")

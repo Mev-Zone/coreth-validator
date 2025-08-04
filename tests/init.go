@@ -34,9 +34,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/utils"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 // Forks table defines supported forks and their chain config.

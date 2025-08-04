@@ -6,7 +6,7 @@ package precompiletest
 import (
 	"testing"
 
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
+	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

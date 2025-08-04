@@ -33,10 +33,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/extstate"
-	"github.com/ava-labs/coreth/eth/tracers"
-	"github.com/ava-labs/coreth/plugin/evm/customrawdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
@@ -45,6 +41,10 @@ import (
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/core/extstate"
+	"github.com/mev-zone/coreth-validator/eth/tracers"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customrawdb"
 )
 
 // noopReleaser is returned in case there is no operation expected

@@ -9,9 +9,9 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
-	"github.com/ava-labs/coreth/plugin/evm/atomic"
-	"github.com/ava-labs/coreth/plugin/evm/config"
 	"github.com/ava-labs/libevm/log"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic"
+	"github.com/mev-zone/coreth-validator/plugin/evm/config"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

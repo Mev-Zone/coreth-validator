@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/snow/snowtest"
-	"github.com/ava-labs/coreth/core/extstate"
-	"github.com/ava-labs/coreth/precompile/contract"
-	"github.com/ava-labs/coreth/precompile/modules"
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
+	"github.com/mev-zone/coreth-validator/core/extstate"
+	"github.com/mev-zone/coreth-validator/precompile/contract"
+	"github.com/mev-zone/coreth-validator/precompile/modules"
+	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )

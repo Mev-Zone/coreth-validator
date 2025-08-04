@@ -7,16 +7,16 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic"
 
 	"github.com/ava-labs/avalanchego/database"
 	safemath "github.com/ava-labs/avalanchego/utils/math"
 
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/plugin/evm/customtypes"
-	"github.com/ava-labs/coreth/plugin/evm/extension"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap5"
-	"github.com/ava-labs/coreth/utils"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customtypes"
+	"github.com/mev-zone/coreth-validator/plugin/evm/extension"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap5"
+	"github.com/mev-zone/coreth-validator/utils"
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/log"

@@ -4,8 +4,8 @@
 package extstate
 
 import (
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/core/state"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 type workerPool struct {

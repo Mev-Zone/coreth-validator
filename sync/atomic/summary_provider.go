@@ -5,11 +5,11 @@ package atomic
 import (
 	"fmt"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic/state"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic/state"
 
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 
-	"github.com/ava-labs/coreth/sync"
+	"github.com/mev-zone/coreth-validator/sync"
 
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"

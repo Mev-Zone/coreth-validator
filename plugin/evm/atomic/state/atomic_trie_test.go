@@ -8,8 +8,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic"
-	"github.com/ava-labs/coreth/plugin/evm/atomic/atomictest"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic/atomictest"
 
 	"github.com/prometheus/client_golang/prometheus"
 

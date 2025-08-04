@@ -9,14 +9,14 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ava-labs/coreth/accounts/abi/bind"
-	"github.com/ava-labs/coreth/ethclient"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap1"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/log"
 	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/mev-zone/coreth-validator/accounts/abi/bind"
+	"github.com/mev-zone/coreth-validator/ethclient"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap1"
 )
 
 const expectedBlockHeight = 2

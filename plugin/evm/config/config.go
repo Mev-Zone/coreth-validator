@@ -10,10 +10,10 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/vms/components/gas"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
-	"github.com/ava-labs/coreth/miner"
+	"github.com/mev-zone/coreth-validator/miner"
+	"github.com/mev-zone/coreth-validator/utils"
 	"github.com/spf13/cast"
 )
 
@@ -247,8 +247,8 @@ type Config struct {
 	HttpBodyLimit uint64 `json:"http-body-limit"`
 
 	// Database Scheme
-	StateScheme string `json:"state-scheme"`
-	Mev           miner.MevConfig `json:"mev"`
+	StateScheme string          `json:"state-scheme"`
+	Mev         miner.MevConfig `json:"mev"`
 }
 
 // TxPoolConfig contains the transaction pool config to be passed

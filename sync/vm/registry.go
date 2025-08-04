@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	synccommon "github.com/ava-labs/coreth/sync"
 	"github.com/ava-labs/libevm/log"
+	synccommon "github.com/mev-zone/coreth-validator/sync"
 )
 
 // SyncerTask represents a single syncer with its name for identification.

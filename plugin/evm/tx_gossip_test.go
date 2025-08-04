@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic"
-	atomicvm "github.com/ava-labs/coreth/plugin/evm/atomic/vm"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic"
+	atomicvm "github.com/mev-zone/coreth-validator/plugin/evm/atomic/vm"
 
 	avalancheatomic "github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/database/memdb"
@@ -36,10 +36,10 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ava-labs/coreth/plugin/evm/config"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap0"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/plugin/evm/config"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap0"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 func TestEthTxGossip(t *testing.T) {

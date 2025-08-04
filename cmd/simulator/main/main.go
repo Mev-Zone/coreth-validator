@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ava-labs/coreth/cmd/simulator/config"
-	"github.com/ava-labs/coreth/cmd/simulator/load"
-	"github.com/ava-labs/coreth/log"
 	gethlog "github.com/ava-labs/libevm/log"
+	"github.com/mev-zone/coreth-validator/cmd/simulator/config"
+	"github.com/mev-zone/coreth-validator/cmd/simulator/load"
+	"github.com/mev-zone/coreth-validator/log"
 	"github.com/spf13/pflag"
 )
 

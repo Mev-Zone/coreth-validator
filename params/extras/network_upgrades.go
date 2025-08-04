@@ -8,8 +8,8 @@ import (
 	"reflect"
 
 	"github.com/ava-labs/avalanchego/upgrade"
-	"github.com/ava-labs/coreth/utils"
 	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 // NetworkUpgrades tracks the timestamps of all the Avalanche upgrades.

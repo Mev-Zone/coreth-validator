@@ -31,11 +31,11 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/plugin/evm/customtypes"
-	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/core/types"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customtypes"
+	"github.com/mev-zone/coreth-validator/rpc"
 )
 
 // additional slots in the header cache to allow processing queries

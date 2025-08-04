@@ -6,7 +6,7 @@ package state
 import (
 	"fmt"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic"
 
 	avalancheatomic "github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/codec"
@@ -15,8 +15,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 
-	"github.com/ava-labs/coreth/plugin/evm/database"
-	"github.com/ava-labs/coreth/triedb/hashdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/types"
@@ -25,6 +23,8 @@ import (
 	"github.com/ava-labs/libevm/trie"
 	"github.com/ava-labs/libevm/trie/trienode"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/mev-zone/coreth-validator/plugin/evm/database"
+	"github.com/mev-zone/coreth-validator/triedb/hashdb"
 )
 
 const (

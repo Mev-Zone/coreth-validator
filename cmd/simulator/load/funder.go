@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/coreth/cmd/simulator/key"
-	"github.com/ava-labs/coreth/cmd/simulator/metrics"
-	"github.com/ava-labs/coreth/cmd/simulator/txs"
-	"github.com/ava-labs/coreth/ethclient"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/log"
 	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/mev-zone/coreth-validator/cmd/simulator/key"
+	"github.com/mev-zone/coreth-validator/cmd/simulator/metrics"
+	"github.com/mev-zone/coreth-validator/cmd/simulator/txs"
+	"github.com/mev-zone/coreth-validator/ethclient"
 )
 
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds

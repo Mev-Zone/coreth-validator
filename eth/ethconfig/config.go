@@ -30,14 +30,14 @@ package ethconfig
 import (
 	"time"
 
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/txpool/blobpool"
-	"github.com/ava-labs/coreth/core/txpool/legacypool"
-	"github.com/ava-labs/coreth/eth/gasprice"
-	"github.com/ava-labs/coreth/internal/ethapi"
-	"github.com/ava-labs/coreth/miner"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/core/txpool/blobpool"
+	"github.com/mev-zone/coreth-validator/core/txpool/legacypool"
+	"github.com/mev-zone/coreth-validator/eth/gasprice"
+	"github.com/mev-zone/coreth-validator/internal/ethapi"
+	"github.com/mev-zone/coreth-validator/miner"
+	"github.com/mev-zone/coreth-validator/params"
 )
 
 // DefaultFullGPOConfig contains default gasprice oracle settings for full node.

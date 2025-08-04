@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic"
 
 	"golang.org/x/exp/slog"
 
@@ -18,7 +18,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/formatting/address"
 	"github.com/ava-labs/avalanchego/utils/json"
 	"github.com/ava-labs/avalanchego/utils/rpc"
-	"github.com/ava-labs/coreth/plugin/evm/config"
+	"github.com/mev-zone/coreth-validator/plugin/evm/config"
 )
 
 // Interface compliance

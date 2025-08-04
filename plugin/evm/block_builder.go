@@ -14,10 +14,10 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/lock"
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/txpool"
-	"github.com/ava-labs/coreth/plugin/evm/extension"
 	"github.com/ava-labs/libevm/log"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/core/txpool"
+	"github.com/mev-zone/coreth-validator/plugin/evm/extension"
 )
 
 const (

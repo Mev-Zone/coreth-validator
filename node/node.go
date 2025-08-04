@@ -28,8 +28,8 @@
 package node
 
 import (
-	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/accounts"
+	"github.com/mev-zone/coreth-validator/rpc"
 )
 
 // Node is a container on which services can be registered.

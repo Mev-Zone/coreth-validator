@@ -32,8 +32,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/consensus/dummy"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -41,6 +39,8 @@ import (
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/ethdb"
+	"github.com/mev-zone/coreth-validator/consensus/dummy"
+	"github.com/mev-zone/coreth-validator/params"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {

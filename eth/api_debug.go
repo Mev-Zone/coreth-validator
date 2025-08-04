@@ -33,9 +33,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/coreth/internal/ethapi"
-	"github.com/ava-labs/coreth/plugin/evm/customrawdb"
-	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -45,6 +42,9 @@ import (
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/rlp"
 	"github.com/ava-labs/libevm/trie"
+	"github.com/mev-zone/coreth-validator/internal/ethapi"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customrawdb"
+	"github.com/mev-zone/coreth-validator/rpc"
 )
 
 var errFirewoodNotSupported = errors.New("firewood triedb scheme does not yet support this operation")

@@ -4,8 +4,8 @@
 package evm
 
 import (
-	"github.com/ava-labs/coreth/core/txpool/legacypool"
-	"github.com/ava-labs/coreth/plugin/evm/config"
+	"github.com/mev-zone/coreth-validator/core/txpool/legacypool"
+	"github.com/mev-zone/coreth-validator/plugin/evm/config"
 )
 
 // defaultTxPoolConfig uses [legacypool.DefaultConfig] to make a [config.TxPoolConfig]

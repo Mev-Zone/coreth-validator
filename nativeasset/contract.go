@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/coreth/precompile/contract"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/log"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/precompile/contract"
 )
 
 // PrecompiledContractsApricot contains the default set of pre-compiled Ethereum

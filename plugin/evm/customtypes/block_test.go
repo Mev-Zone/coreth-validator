@@ -33,18 +33,18 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ava-labs/coreth/internal/blocktest"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/math"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/crypto"
 	"github.com/ava-labs/libevm/rlp"
+	"github.com/mev-zone/coreth-validator/internal/blocktest"
+	"github.com/mev-zone/coreth-validator/params"
 
 	// This test file has to be in package types_test to avoid a circular
 	// dependency when importing `params`. We dot-import the package to mimic
 	// regular same-package behaviour.
-	. "github.com/ava-labs/coreth/plugin/evm/customtypes"
+	. "github.com/mev-zone/coreth-validator/plugin/evm/customtypes"
 )
 
 // This test has been modified from https://github.com/ethereum/go-ethereum/blob/v1.9.21/core/types/block_test.go#L35 to fit

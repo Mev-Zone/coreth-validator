@@ -9,9 +9,9 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	"github.com/ava-labs/coreth/sync/handlers"
-	"github.com/ava-labs/coreth/sync/handlers/stats"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	"github.com/mev-zone/coreth-validator/sync/handlers"
+	"github.com/mev-zone/coreth-validator/sync/handlers/stats"
 
 	"github.com/ava-labs/libevm/metrics"
 	"github.com/ava-labs/libevm/triedb"

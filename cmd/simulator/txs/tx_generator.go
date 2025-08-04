@@ -8,9 +8,9 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/ava-labs/coreth/ethclient"
 	"github.com/ava-labs/libevm/core/types"
 	ethcrypto "github.com/ava-labs/libevm/crypto"
+	"github.com/mev-zone/coreth-validator/ethclient"
 )
 
 var _ TxSequence[*types.Transaction] = (*txSequence)(nil)

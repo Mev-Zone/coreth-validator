@@ -6,13 +6,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic/state"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic/state"
 
 	"github.com/ava-labs/avalanchego/database/versiondb"
 
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	synccommon "github.com/ava-labs/coreth/sync"
-	syncclient "github.com/ava-labs/coreth/sync/client"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	synccommon "github.com/mev-zone/coreth-validator/sync"
+	syncclient "github.com/mev-zone/coreth-validator/sync/client"
 )
 
 // Extender is the sync extender for the atomic VM.

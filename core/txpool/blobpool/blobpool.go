@@ -40,11 +40,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/coreth/consensus/misc/eip4844"
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/txpool"
-	"github.com/ava-labs/coreth/params"
-	"github.com/ava-labs/coreth/plugin/evm/header"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/state"
 	"github.com/ava-labs/libevm/core/types"
@@ -54,6 +49,11 @@ import (
 	"github.com/ava-labs/libevm/rlp"
 	"github.com/holiman/billy"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/consensus/misc/eip4844"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/core/txpool"
+	"github.com/mev-zone/coreth-validator/params"
+	"github.com/mev-zone/coreth-validator/plugin/evm/header"
 )
 
 const (

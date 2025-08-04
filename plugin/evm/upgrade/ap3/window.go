@@ -11,8 +11,8 @@ import (
 	"math"
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/coreth/utils"
 	safemath "github.com/ava-labs/libevm/common/math"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 const (

@@ -33,16 +33,16 @@ import (
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/params"
-	customheader "github.com/ava-labs/coreth/plugin/evm/header"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/acp176"
-	"github.com/ava-labs/coreth/rpc"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/lru"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/event"
 	"github.com/ava-labs/libevm/log"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/params"
+	customheader "github.com/mev-zone/coreth-validator/plugin/evm/header"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/acp176"
+	"github.com/mev-zone/coreth-validator/rpc"
 	"golang.org/x/exp/slices"
 )
 

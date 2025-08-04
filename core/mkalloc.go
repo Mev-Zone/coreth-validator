@@ -43,9 +43,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/rlp"
+	"github.com/mev-zone/coreth-validator/core"
 	"golang.org/x/exp/slices"
 )
 

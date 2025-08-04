@@ -31,12 +31,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ava-labs/coreth/core/extstate"
-	"github.com/ava-labs/coreth/core/state/snapshot"
-	"github.com/ava-labs/coreth/plugin/evm/customrawdb"
-	"github.com/ava-labs/coreth/triedb/firewood"
-	"github.com/ava-labs/coreth/triedb/hashdb"
-	"github.com/ava-labs/coreth/triedb/pathdb"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/rawdb"
 	"github.com/ava-labs/libevm/core/state"
@@ -44,6 +38,12 @@ import (
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/triedb"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/core/extstate"
+	"github.com/mev-zone/coreth-validator/core/state/snapshot"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customrawdb"
+	"github.com/mev-zone/coreth-validator/triedb/firewood"
+	"github.com/mev-zone/coreth-validator/triedb/hashdb"
+	"github.com/mev-zone/coreth-validator/triedb/pathdb"
 )
 
 // StateTestState groups all the state database objects together for use in tests.

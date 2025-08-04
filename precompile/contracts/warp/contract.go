@@ -9,9 +9,9 @@ import (
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/coreth/accounts/abi"
-	"github.com/ava-labs/coreth/precompile/contract"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/accounts/abi"
+	"github.com/mev-zone/coreth-validator/precompile/contract"
 
 	_ "embed"
 

@@ -9,8 +9,8 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 
-	"github.com/ava-labs/coreth/core"
-	synccommon "github.com/ava-labs/coreth/sync"
+	"github.com/mev-zone/coreth-validator/core"
+	synccommon "github.com/mev-zone/coreth-validator/sync"
 
 	"github.com/ava-labs/libevm/log"
 )

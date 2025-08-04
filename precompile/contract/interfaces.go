@@ -8,12 +8,12 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
 	"github.com/ava-labs/libevm/common"
 	ethtypes "github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/libevm/stateconf"
 	"github.com/holiman/uint256"
+	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
 )
 
 // StatefulPrecompiledContract is the interface for executing a precompiled contract

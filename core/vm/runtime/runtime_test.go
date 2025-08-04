@@ -34,11 +34,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/coreth/accounts/abi"
-	"github.com/ava-labs/coreth/consensus"
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/eth/tracers"
-	"github.com/ava-labs/coreth/params"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/asm"
 	"github.com/ava-labs/libevm/core/rawdb"
@@ -46,6 +41,11 @@ import (
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/eth/tracers/logger"
+	"github.com/mev-zone/coreth-validator/accounts/abi"
+	"github.com/mev-zone/coreth-validator/consensus"
+	"github.com/mev-zone/coreth-validator/core"
+	"github.com/mev-zone/coreth-validator/eth/tracers"
+	"github.com/mev-zone/coreth-validator/params"
 
 	// force-load js tracers to trigger registration
 	_ "github.com/ava-labs/libevm/eth/tracers/js"

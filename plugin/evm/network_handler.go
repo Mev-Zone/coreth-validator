@@ -8,13 +8,13 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	syncHandlers "github.com/ava-labs/coreth/sync/handlers"
-	"github.com/ava-labs/coreth/sync/handlers/stats"
-	"github.com/ava-labs/coreth/warp"
 	"github.com/ava-labs/libevm/ethdb"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/triedb"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	syncHandlers "github.com/mev-zone/coreth-validator/sync/handlers"
+	"github.com/mev-zone/coreth-validator/sync/handlers/stats"
+	"github.com/mev-zone/coreth-validator/warp"
 )
 
 var _ message.RequestHandler = (*networkHandler)(nil)

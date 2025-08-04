@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/params/extras"
-	"github.com/ava-labs/coreth/plugin/evm/customtypes"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap4"
-	"github.com/ava-labs/coreth/plugin/evm/upgrade/ap5"
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	"github.com/mev-zone/coreth-validator/plugin/evm/customtypes"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap4"
+	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap5"
+	"github.com/mev-zone/coreth-validator/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

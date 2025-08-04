@@ -10,18 +10,18 @@ import (
 	"slices"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/coreth/nativeasset"
-	"github.com/ava-labs/coreth/params/extras"
-	customheader "github.com/ava-labs/coreth/plugin/evm/header"
-	"github.com/ava-labs/coreth/precompile/contract"
-	"github.com/ava-labs/coreth/precompile/modules"
-	"github.com/ava-labs/coreth/precompile/precompileconfig"
-	"github.com/ava-labs/coreth/predicate"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/libevm"
 	"github.com/ava-labs/libevm/libevm/legacy"
 	ethparams "github.com/ava-labs/libevm/params"
+	"github.com/mev-zone/coreth-validator/nativeasset"
+	"github.com/mev-zone/coreth-validator/params/extras"
+	customheader "github.com/mev-zone/coreth-validator/plugin/evm/header"
+	"github.com/mev-zone/coreth-validator/precompile/contract"
+	"github.com/mev-zone/coreth-validator/precompile/modules"
+	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
+	"github.com/mev-zone/coreth-validator/predicate"
 )
 
 type RulesExtra extras.Rules

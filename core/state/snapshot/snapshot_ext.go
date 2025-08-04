@@ -6,9 +6,9 @@ package snapshot
 import (
 	"time"
 
-	"github.com/ava-labs/coreth/utils"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/ethdb"
+	"github.com/mev-zone/coreth-validator/utils"
 )
 
 func (t *Tree) DiskAccountIterator(seek common.Hash) AccountIterator {

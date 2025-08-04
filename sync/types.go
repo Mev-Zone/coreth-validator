@@ -9,9 +9,9 @@ import (
 
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	"github.com/ava-labs/coreth/plugin/evm/message"
-	syncclient "github.com/ava-labs/coreth/sync/client"
 	"github.com/ava-labs/libevm/core/types"
+	"github.com/mev-zone/coreth-validator/plugin/evm/message"
+	syncclient "github.com/mev-zone/coreth-validator/sync/client"
 )
 
 var (

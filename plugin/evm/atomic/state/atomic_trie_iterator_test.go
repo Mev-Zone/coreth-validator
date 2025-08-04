@@ -6,7 +6,7 @@ package state
 import (
 	"testing"
 
-	"github.com/ava-labs/coreth/plugin/evm/atomic/atomictest"
+	"github.com/mev-zone/coreth-validator/plugin/evm/atomic/atomictest"
 
 	avalancheatomic "github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/database/memdb"
