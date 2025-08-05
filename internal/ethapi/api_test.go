@@ -59,7 +59,6 @@ import (
 	"github.com/mev-zone/coreth-validator/consensus/dummy"
 	"github.com/mev-zone/coreth-validator/core"
 	"github.com/mev-zone/coreth-validator/core/bloombits"
-	"github.com/mev-zone/coreth-validator/core/state"
 	bidTypes "github.com/mev-zone/coreth-validator/core/types"
 	"github.com/mev-zone/coreth-validator/internal/blocktest"
 	"github.com/mev-zone/coreth-validator/params"
