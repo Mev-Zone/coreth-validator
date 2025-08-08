@@ -2,6 +2,7 @@ package builderclient
 
 import (
 	"context"
+
 	"github.com/mev-zone/coreth-validator/core/types"
 	"github.com/mev-zone/coreth-validator/rpc"
 )
@@ -29,4 +30,8 @@ func newClient(c *rpc.Client) *Client {
 // ReportIssue reports an issue
 func (ec *Client) ReportIssue(ctx context.Context, args *types.BidIssue) error {
 	return ec.c.CallContext(ctx, nil, "eth_reportIssue", args)
+}
+
+func (ec *Client) Notify(ctx context.Context, args *types.MevParams) error {
+	return ec.c.CallContext(ctx, nil, "eth_notifyMevConnection", args)
 }

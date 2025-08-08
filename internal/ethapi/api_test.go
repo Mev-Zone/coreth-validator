@@ -59,7 +59,6 @@ import (
 	"github.com/mev-zone/coreth-validator/consensus/dummy"
 	"github.com/mev-zone/coreth-validator/core"
 	"github.com/mev-zone/coreth-validator/core/bloombits"
-	bidTypes "github.com/mev-zone/coreth-validator/core/types"
 	"github.com/mev-zone/coreth-validator/internal/blocktest"
 	"github.com/mev-zone/coreth-validator/params"
 	"github.com/mev-zone/coreth-validator/plugin/evm/upgrade/ap3"
@@ -635,12 +634,6 @@ func (b testBackend) IsArchive() bool {
 func (b testBackend) HistoricalProofQueryWindow() (queryWindow uint64) {
 	panic("implement me")
 }
-func (b testBackend) MevRunning() bool               { panic("implement me") }
-func (b testBackend) MevParams() *bidTypes.MevParams { panic("implement me") }
-func (b testBackend) SendBid(ctx context.Context, bid *bidTypes.BidArgs) (common.Hash, error) {
-	panic("implement me")
-}
-func (b testBackend) BestBidGasFee(parentHash common.Hash) *big.Int { panic("implement me") }
 
 func TestEstimateGas(t *testing.T) {
 	t.Parallel()

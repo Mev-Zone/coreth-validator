@@ -21,6 +21,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/acp118"
 	"github.com/ava-labs/firewood-go-ethhash/ffi"
+	"github.com/mev-zone/coreth-validator/mev"
 	"github.com/mev-zone/coreth-validator/network"
 	"github.com/mev-zone/coreth-validator/plugin/evm/customrawdb"
 	"github.com/mev-zone/coreth-validator/plugin/evm/extension"
@@ -411,7 +412,6 @@ func (vm *VM) Initialize(
 	vm.ethConfig.StateHistory = vm.config.StateHistory
 	vm.ethConfig.TransactionHistory = vm.config.TransactionHistory
 	vm.ethConfig.SkipTxIndexing = vm.config.SkipTxIndexing
-	vm.ethConfig.Miner.Mev = vm.config.Mev
 	vm.ethConfig.StateScheme = vm.config.StateScheme
 
 	if vm.ethConfig.StateScheme == customrawdb.FirewoodScheme {
@@ -1073,7 +1073,7 @@ func (vm *VM) Version(context.Context) (string, error) {
 }
 
 // CreateHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
+func (vm *VM) CreateHandlers(ctx context.Context) (map[string]http.Handler, error) {
 	handler := rpc.NewServer(vm.config.APIMaxDuration.Duration)
 	if vm.config.HttpBodyLimit > 0 {
 		handler.SetHTTPBodyLimit(int(vm.config.HttpBodyLimit))
@@ -1103,6 +1103,26 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
+	}
+
+	if vm.config.MevAPIEnabled {
+		mevBackend := mev.NewBackend(
+			vm.ctx,
+			vm.config.Mev,
+			vm.eth.APIBackend,
+			vm.eth.BlockChain().Config(),
+		)
+		bf := vm.eth.Miner().BidFetcher()
+		if p, err := mevBackend.MevParams(); err != nil {
+			return nil, err
+		} else {
+			bf.Init(ctx, vm.config.Mev, vm.ctx, p)
+			mevBackend.SetBidSimulator(bf)
+		}
+		if err := handler.RegisterName("mev", mev.NewAPI(mevBackend)); err != nil {
+			return nil, err
+		}
+		enabledAPIs = append(enabledAPIs, "mev")
 	}
 
 	log.Info("enabling apis",

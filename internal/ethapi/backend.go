@@ -43,7 +43,6 @@ import (
 	"github.com/mev-zone/coreth-validator/consensus"
 	"github.com/mev-zone/coreth-validator/core"
 	"github.com/mev-zone/coreth-validator/core/bloombits"
-	bidTypes "github.com/mev-zone/coreth-validator/core/types"
 	"github.com/mev-zone/coreth-validator/params"
 	"github.com/mev-zone/coreth-validator/rpc"
 )
@@ -111,15 +110,6 @@ type Backend interface {
 	SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Subscription
 	BloomStatus() (uint64, uint64)
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
-
-	// MevRunning return true if mev is running
-	MevRunning() bool
-	// MevParams returns the static params of mev
-	MevParams() *bidTypes.MevParams
-	// SendBid receives bid from the builders.
-	SendBid(ctx context.Context, bid *bidTypes.BidArgs) (common.Hash, error)
-	// BestBidGasFee returns the gas fee of the best bid for the given parent hash.
-	BestBidGasFee(parentHash common.Hash) *big.Int
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {
@@ -153,11 +143,6 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Namespace: "personal",
 			Service:   NewPersonalAccountAPI(apiBackend, nonceLock),
 			Name:      "internal-personal",
-		},
-		{
-			Namespace: "mev",
-			Service:   NewMevAPI(apiBackend),
-			Name:      "internal-mev",
 		},
 	}
 }

@@ -203,6 +203,6 @@ type BidIssue struct {
 type MevParams struct {
 	ValidatorCommission uint64 // 100 means 1%
 	ValidatorWallet     common.Address
-	GasPrice            *big.Int // Minimum avg gas price for bid block
+	Signature           []byte
 	Version             string
 }

@@ -44,7 +44,6 @@ import (
 	"github.com/mev-zone/coreth-validator/core"
 	"github.com/mev-zone/coreth-validator/core/bloombits"
 	"github.com/mev-zone/coreth-validator/core/txpool"
-	bidTypes "github.com/mev-zone/coreth-validator/core/types"
 	"github.com/mev-zone/coreth-validator/eth/gasprice"
 	"github.com/mev-zone/coreth-validator/eth/tracers"
 	"github.com/mev-zone/coreth-validator/internal/ethapi"
@@ -535,20 +534,4 @@ func (b *EthAPIBackend) MinRequiredTip(ctx context.Context, header *types.Header
 
 func (b *EthAPIBackend) isLatestAndAllowed(number rpc.BlockNumber) bool {
 	return number.IsLatest() && b.IsAllowUnfinalizedQueries()
-}
-
-func (b *EthAPIBackend) MevRunning() bool {
-	return b.eth.Miner().MevRunning()
-}
-
-func (b *EthAPIBackend) MevParams() *bidTypes.MevParams {
-	return b.eth.Miner().MevParams()
-}
-
-func (b *EthAPIBackend) SendBid(ctx context.Context, bid *bidTypes.BidArgs) (common.Hash, error) {
-	return b.eth.Miner().SendBid(ctx, bid)
-}
-
-func (b *EthAPIBackend) BestBidGasFee(parentHash common.Hash) *big.Int {
-	return b.eth.Miner().BestPackedBlockReward(parentHash)
 }

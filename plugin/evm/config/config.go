@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/components/gas"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/common/hexutil"
-	"github.com/mev-zone/coreth-validator/miner"
+	"github.com/mev-zone/coreth-validator/mev"
 	"github.com/mev-zone/coreth-validator/utils"
 	"github.com/spf13/cast"
 )
@@ -104,6 +104,7 @@ type Config struct {
 	CorethAdminAPIEnabled bool   `json:"coreth-admin-api-enabled"` // Deprecated: use AdminAPIEnabled instead
 	CorethAdminAPIDir     string `json:"coreth-admin-api-dir"`     // Deprecated: use AdminAPIDir instead
 	WarpAPIEnabled        bool   `json:"warp-api-enabled"`
+	MevAPIEnabled         bool   `json:"mev-api-enabled"`
 
 	// EnabledEthAPIs is a list of Ethereum services that should be enabled
 	// If none is specified, then we use the default list [defaultEnabledAPIs]
@@ -247,8 +248,10 @@ type Config struct {
 	HttpBodyLimit uint64 `json:"http-body-limit"`
 
 	// Database Scheme
-	StateScheme string          `json:"state-scheme"`
-	Mev         miner.MevConfig `json:"mev"`
+	StateScheme string `json:"state-scheme"`
+
+	// MEV settings
+	Mev mev.Config `json:"mev"`
 }
 
 // TxPoolConfig contains the transaction pool config to be passed
