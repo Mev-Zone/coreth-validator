@@ -2,16 +2,20 @@ package mev
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/libevm/common"
 	types2 "github.com/ava-labs/libevm/core/types"
 	"github.com/mev-zone/coreth-validator/core/types"
+	"github.com/mev-zone/coreth-validator/mev/builderclient"
 	"github.com/mev-zone/coreth-validator/params"
 )
 
@@ -27,10 +31,9 @@ type Config struct {
 }
 
 type Backend interface {
-	// SendBid receives bid from the builders.
-	SendBid(ctx context.Context, bid *types.BidArgs) (common.Hash, error)
 	SetBidSimulator(client BidSimulatorClient)
-	MevParams() (*types.MevParams, error)
+	MevParams() (*types.HexParams, error)
+	FetchBids(ctx context.Context, height int64) error
 }
 
 type EthereumClient interface {
@@ -41,6 +44,7 @@ type BidSimulatorClient interface {
 	ExistBuilder(builder common.Address) bool
 	CheckPending(blockNumber uint64, builder common.Address, bidHash common.Hash) error
 	SendBid(ctx context.Context, bid *types.Bid) error
+	Builders() map[common.Address]*builderclient.Client
 }
 
 type backend struct {
@@ -65,10 +69,58 @@ func NewBackend(
 	}
 }
 
+func (m *backend) FetchBids(ctx context.Context, height int64) error {
+	var wg sync.WaitGroup
+	var bids []*types.BidArgs
+	errors := make(chan error, len(m.config.Builders))
+
+	p := &types.BidParams{
+		Height: height,
+	}
+
+	msg, err := m.sign(p)
+	if err != nil {
+		return err
+	}
+
+	for _, builder := range m.bidSimulator.Builders() {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var result *types.BidArgs
+			err = builder.Bid(ctx, result, msg)
+			if err != nil {
+				errors <- fmt.Errorf("fail to fetch bid: %w", err)
+			} else {
+				bids = append(bids, result)
+				errors <- nil
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errors)
+
+	for err = range errors {
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, bid := range bids {
+		_, err = m.sendBid(ctx, bid)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // SendBid receives bid from the builders.
 // If mev is not running or bid is invalid, return error.
 // Otherwise, creates a builder bid for the given argument, submit it to the miner.
-func (m *backend) SendBid(ctx context.Context, args *types.BidArgs) (common.Hash, error) {
+func (m *backend) sendBid(ctx context.Context, args *types.BidArgs) (common.Hash, error) {
 	var (
 		rawBid        = args.RawBid
 		currentHeader = m.b.CurrentHeader()
@@ -134,13 +186,18 @@ func (m *backend) SendBid(ctx context.Context, args *types.BidArgs) (common.Hash
 	return bid.Hash(), nil
 }
 
-func (m *backend) MevParams() (*types.MevParams, error) {
+func (m *backend) MevParams() (*types.HexParams, error) {
 	p := &types.MevParams{
 		ValidatorCommission: m.config.ValidatorCommission,
 		ValidatorWallet:     m.config.ValidatorWallet,
 		Version:             params.Version,
 	}
-	payload, err := json.Marshal(p)
+
+	return m.sign(p)
+}
+
+func (m *backend) sign(data any) (*types.HexParams, error) {
+	payload, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
@@ -155,8 +212,14 @@ func (m *backend) MevParams() (*types.MevParams, error) {
 		return nil, err
 	}
 
-	p.Signature = sign
-	return p, nil
+	pkBytes := bls.PublicKeyToCompressedBytes(m.ctx.PublicKey)
+
+	return &types.HexParams{
+		HexMsg:    hex.EncodeToString(msg.Bytes()),
+		Signature: hex.EncodeToString(sign),
+		PublicKey: hex.EncodeToString(pkBytes),
+		SubnetID:  m.ctx.SubnetID.String(),
+	}, nil
 }
 
 func (m *backend) SetBidSimulator(client BidSimulatorClient) {

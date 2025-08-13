@@ -68,10 +68,11 @@ var (
 
 type BidFetcher interface {
 	GetFinalBid(header *types.Header, burn *uint256.Int) *BidRuntime
-	Init(ctx context.Context, config mev.Config, snowCtx *snow.Context, params *bidTypes.MevParams)
+	Init(ctx context.Context, backend mev.Backend, config mev.Config, snowCtx *snow.Context, params *bidTypes.HexParams)
 	ExistBuilder(builder common.Address) bool
 	CheckPending(blockNumber uint64, builder common.Address, bidHash common.Hash) error
 	SendBid(ctx context.Context, bid *bidTypes.Bid) error
+	Builders() map[common.Address]*builderclient.Client
 }
 
 type bidWorker interface {
@@ -131,6 +132,7 @@ type bidSimulator struct {
 
 	stats   simStats
 	snowCtx *snow.Context
+	backend mev.Backend
 }
 
 func newBidSimulator(
@@ -161,9 +163,10 @@ func newBidSimulator(
 	}
 }
 
-func (b *bidSimulator) Init(ctx context.Context, config mev.Config, snowCtx *snow.Context, params *bidTypes.MevParams) {
+func (b *bidSimulator) Init(ctx context.Context, backend mev.Backend, config mev.Config, snowCtx *snow.Context, params *bidTypes.HexParams) {
 	b.snowCtx = snowCtx
 	b.config = &config
+	b.backend = backend
 	b.chainHeadSub = b.chain.SubscribeChainHeadEvent(b.chainHeadCh)
 	b.bidReceiving.Store(true)
 	b.dialBuilders(ctx, params)
@@ -177,7 +180,7 @@ func (b *bidSimulator) Init(ctx context.Context, config mev.Config, snowCtx *sno
 	go b.newBidLoop()
 }
 
-func (b *bidSimulator) dialBuilders(ctx context.Context, params *bidTypes.MevParams) {
+func (b *bidSimulator) dialBuilders(ctx context.Context, params *bidTypes.HexParams) {
 	for _, v := range b.config.Builders {
 		_ = b.AddBuilder(ctx, v.Address, v.URL, params)
 	}
@@ -187,7 +190,11 @@ func (b *bidSimulator) receivingBid() bool {
 	return b.bidReceiving.Load()
 }
 
-func (b *bidSimulator) AddBuilder(ctx context.Context, builder common.Address, url string, params *bidTypes.MevParams) error {
+func (b *bidSimulator) Builders() map[common.Address]*builderclient.Client {
+	return b.builders
+}
+
+func (b *bidSimulator) AddBuilder(ctx context.Context, builder common.Address, url string, params *bidTypes.HexParams) error {
 	b.buildersMu.Lock()
 	defer b.buildersMu.Unlock()
 
@@ -234,6 +241,12 @@ func (b *bidSimulator) SetBestBid(prevBlockHash common.Hash, bid *BidRuntime) {
 }
 
 func (b *bidSimulator) GetFinalBid(header *types.Header, currentBurn *uint256.Int) *BidRuntime {
+	err := b.backend.FetchBids(context.Background(), header.Number.Int64())
+	if err != nil {
+		log.Error("BidSimulator: failed to fetch bids", "err", err)
+		return nil
+	}
+
 	if pendingBid := b.GetSimulatingBid(header.ParentHash); pendingBid != nil {
 		waitBidTimer := time.NewTimer(waitMEVMinerEndTimeLimit)
 		defer waitBidTimer.Stop()

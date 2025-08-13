@@ -199,10 +199,19 @@ type BidIssue struct {
 	BidHash common.Hash
 	Message string
 }
-
 type MevParams struct {
 	ValidatorCommission uint64 // 100 means 1%
 	ValidatorWallet     common.Address
-	Signature           []byte
 	Version             string
+}
+
+type BidParams struct {
+	Height int64
+}
+
+type HexParams struct {
+	HexMsg    string
+	Signature string
+	PublicKey string
+	SubnetID  string
 }

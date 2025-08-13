@@ -1116,13 +1116,9 @@ func (vm *VM) CreateHandlers(ctx context.Context) (map[string]http.Handler, erro
 		if p, err := mevBackend.MevParams(); err != nil {
 			return nil, err
 		} else {
-			bf.Init(ctx, vm.config.Mev, vm.ctx, p)
+			bf.Init(ctx, mevBackend, vm.config.Mev, vm.ctx, p)
 			mevBackend.SetBidSimulator(bf)
 		}
-		if err := handler.RegisterName("mev", mev.NewAPI(mevBackend)); err != nil {
-			return nil, err
-		}
-		enabledAPIs = append(enabledAPIs, "mev")
 	}
 
 	log.Info("enabling apis",

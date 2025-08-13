@@ -29,9 +29,13 @@ func newClient(c *rpc.Client) *Client {
 
 // ReportIssue reports an issue
 func (ec *Client) ReportIssue(ctx context.Context, args *types.BidIssue) error {
-	return ec.c.CallContext(ctx, nil, "eth_reportIssue", args)
+	return ec.c.CallContext(ctx, nil, "mev_reportIssue", args)
 }
 
-func (ec *Client) Notify(ctx context.Context, args *types.MevParams) error {
-	return ec.c.CallContext(ctx, nil, "eth_notifyMevConnection", args)
+func (ec *Client) Notify(ctx context.Context, args *types.HexParams) error {
+	return ec.c.CallContext(ctx, nil, "mev_notify", args)
+}
+
+func (ec *Client) Bid(ctx context.Context, result *types.BidArgs, args *types.HexParams) error {
+	return ec.c.CallContext(ctx, &result, "mev_bid", args)
 }
