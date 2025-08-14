@@ -37,5 +37,5 @@ func (ec *Client) Notify(ctx context.Context, args *types.HexParams) error {
 }
 
 func (ec *Client) Bid(ctx context.Context, result *types.BidArgs, args *types.HexParams) error {
-	return ec.c.CallContext(ctx, &result, "mev_bid", args)
+	return ec.c.CallContext(ctx, result, "mev_bid", args)
 }

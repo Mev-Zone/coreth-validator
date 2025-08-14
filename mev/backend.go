@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/libevm/common"
 	types2 "github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/metrics"
 	"github.com/mev-zone/coreth-validator/core/types"
 	"github.com/mev-zone/coreth-validator/mev/builderclient"
 	"github.com/mev-zone/coreth-validator/params"
@@ -71,7 +72,7 @@ func NewBackend(
 
 func (m *backend) FetchBids(ctx context.Context, height int64) error {
 	var wg sync.WaitGroup
-	var bids []*types.BidArgs
+	var bids []types.BidArgs
 	errors := make(chan error, len(m.config.Builders))
 
 	p := &types.BidParams{
@@ -83,14 +84,15 @@ func (m *backend) FetchBids(ctx context.Context, height int64) error {
 		return err
 	}
 
-	for _, builder := range m.bidSimulator.Builders() {
+	for k, builder := range m.bidSimulator.Builders() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			var result *types.BidArgs
-			err = builder.Bid(ctx, result, msg)
+			var result types.BidArgs
+			err = builder.Bid(ctx, &result, msg)
 			if err != nil {
 				errors <- fmt.Errorf("fail to fetch bid: %w", err)
+				metrics.GetOrRegisterCounter(fmt.Sprintf("bid/fetch/err/%v", k), nil).Inc(1)
 			} else {
 				bids = append(bids, result)
 				errors <- nil
@@ -108,10 +110,7 @@ func (m *backend) FetchBids(ctx context.Context, height int64) error {
 	}
 
 	for _, bid := range bids {
-		_, err = m.sendBid(ctx, bid)
-		if err != nil {
-			return err
-		}
+		_ = m.sendBid(ctx, bid)
 	}
 
 	return nil
@@ -120,70 +119,64 @@ func (m *backend) FetchBids(ctx context.Context, height int64) error {
 // SendBid receives bid from the builders.
 // If mev is not running or bid is invalid, return error.
 // Otherwise, creates a builder bid for the given argument, submit it to the miner.
-func (m *backend) sendBid(ctx context.Context, args *types.BidArgs) (common.Hash, error) {
+func (m *backend) sendBid(ctx context.Context, args types.BidArgs) error {
 	var (
 		rawBid        = args.RawBid
 		currentHeader = m.b.CurrentHeader()
 	)
 
 	if rawBid == nil {
-		return common.Hash{}, types.NewInvalidBidError("rawBid should not be nil")
+		return types.NewInvalidBidError("rawBid should not be nil")
 	}
 
 	// only support bidding for the next block not for the future block
 	if rawBid.BlockNumber != currentHeader.Number.Uint64()+1 {
-		return common.Hash{}, types.NewInvalidBidError("stale block number or block in future")
+		return types.NewInvalidBidError("stale block number or block in future")
 	}
 
 	if rawBid.ParentHash != currentHeader.Hash() {
-		return common.Hash{}, types.NewInvalidBidError(
+		return types.NewInvalidBidError(
 			fmt.Sprintf("non-aligned parent hash: %v", currentHeader.Hash()))
 	}
 
 	if rawBid.GasFee == nil || rawBid.GasFee.Cmp(common.Big0) == 0 || rawBid.GasUsed == 0 {
-		return common.Hash{}, types.NewInvalidBidError("empty gasFee or empty gasUsed")
+		return types.NewInvalidBidError("empty gasFee or empty gasUsed")
 	}
 
 	if len(args.BurnTx) == 0 {
-		return common.Hash{}, types.NewInvalidPayBidTxError("burnTx are must-have")
+		return types.NewInvalidPayBidTxError("burnTx are must-have")
 	}
 
 	if len(args.PayBidTx) == 0 || args.PayBidTxGasUsed == 0 {
-		return common.Hash{}, types.NewInvalidPayBidTxError("payBidTx and payBidTxGasUsed are must-have")
+		return types.NewInvalidPayBidTxError("payBidTx and payBidTxGasUsed are must-have")
 	}
 
 	if args.PayBidTxGasUsed > params.PayBidTxGasLimit {
-		return common.Hash{}, types.NewInvalidBidError(
+		return types.NewInvalidBidError(
 			fmt.Sprintf("transfer tx gas used must be no more than %v", params.PayBidTxGasLimit))
 	}
 
 	builder, err := args.EcrecoverSender()
 	if err != nil {
-		return common.Hash{}, types.NewInvalidBidError(fmt.Sprintf("invalid signature:%v", err))
+		return types.NewInvalidBidError(fmt.Sprintf("invalid signature:%v", err))
 	}
 
 	if !m.bidSimulator.ExistBuilder(builder) {
-		return common.Hash{}, types.NewInvalidBidError("builder is not registered")
+		return types.NewInvalidBidError("builder is not registered")
 	}
 
 	err = m.bidSimulator.CheckPending(args.RawBid.BlockNumber, builder, args.RawBid.Hash())
 	if err != nil {
-		return common.Hash{}, err
+		return err
 	}
 
 	signer := types2.MakeSigner(m.chainConfig, big.NewInt(int64(args.RawBid.BlockNumber)), uint64(time.Now().Unix()))
 	bid, err := args.ToBid(builder, signer)
 	if err != nil {
-		return common.Hash{}, types.NewInvalidBidError(fmt.Sprintf("fail to convert bidArgs to bid, %v", err))
+		return types.NewInvalidBidError(fmt.Sprintf("fail to convert bidArgs to bid, %v", err))
 	}
 
-	err = m.bidSimulator.SendBid(ctx, bid)
-
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return bid.Hash(), nil
+	return m.bidSimulator.SendBid(ctx, bid)
 }
 
 func (m *backend) MevParams() (*types.HexParams, error) {
