@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/libevm/core/vm"
 	"github.com/ava-labs/libevm/event"
 	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/metrics"
@@ -28,6 +28,9 @@ import (
 	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
 	"github.com/mev-zone/coreth-validator/rpc"
 )
+
+var _ bidWorker = (*worker)(nil)
+var _ BidFetcher = (*bidSimulator)(nil)
 
 const (
 	// maxBidPerBuilderPerBlock is the max bid number per builder
@@ -44,7 +47,8 @@ const (
 )
 
 var (
-	burnAddress = common.HexToAddress("0x000000000000000000000000000000000000dEaD")
+	burnAddress           = common.HexToAddress("0x000000000000000000000000000000000000dEaD")
+	ErrUnrevertibleFailed = errors.New("no revertible transaction failed")
 )
 
 var (
@@ -77,6 +81,7 @@ type BidFetcher interface {
 
 type bidWorker interface {
 	createEnvironment(predicateContext *precompileconfig.PredicateContext, parentHash common.Hash) (*environment, error)
+	commitTransaction(env *environment, tx *types.Transaction, coinbase common.Address) ([]*types.Log, error)
 }
 
 // simBidReq is the request for simulating a bid
@@ -96,6 +101,13 @@ type simStats struct {
 	unprofitableCounter metrics.Counter
 	bidReceivedCounter  metrics.Counter
 	bidSimTimer         metrics.Timer
+
+	errorsTotal         metrics.Counter
+	errorsRate          metrics.Meter
+	issueReportSent     metrics.Counter
+	issueReportSuccess  metrics.Counter
+	issueReportFail     metrics.Counter
+	issueReportDuration metrics.Timer
 }
 
 // bidSimulator is in charge of receiving bid from builders, reporting issue to builders.
@@ -107,6 +119,7 @@ type bidSimulator struct {
 	txpool      *txpool.TxPool
 	chainConfig *params.ChainConfig
 	bidWorker   bidWorker
+	exitCh      chan int32
 
 	bidReceiving atomic.Bool // controlled by config and eth.AdminAPI
 
@@ -147,6 +160,7 @@ func newBidSimulator(
 		txpool:        eth.TxPool(),
 		chainConfig:   chainConfig,
 		bidWorker:     bidWorker,
+		exitCh:        make(chan int32),
 		chainHeadCh:   make(chan core.ChainHeadEvent, chainHeadChanSize),
 		builders:      make(map[common.Address]*builderclient.Client),
 		simBidCh:      make(chan *simBidReq),
@@ -159,8 +173,20 @@ func newBidSimulator(
 			unprofitableCounter: metrics.GetOrRegisterCounter("bid/unprofitable", nil),
 			bidReceivedCounter:  metrics.GetOrRegisterCounter("bid/received", nil),
 			bidSimTimer:         metrics.NewRegisteredTimer("bid/sim/duration", nil),
+
+			errorsTotal:         metrics.GetOrRegisterCounter("bid/errors_total", nil),
+			errorsRate:          metrics.GetOrRegisterMeter("bid/errors_rate", nil),
+			issueReportSent:     metrics.GetOrRegisterCounter("bid/issue_report/sent_total", nil),
+			issueReportSuccess:  metrics.GetOrRegisterCounter("bid/issue_report/success_total", nil),
+			issueReportFail:     metrics.GetOrRegisterCounter("bid/issue_report/fail_total", nil),
+			issueReportDuration: metrics.NewRegisteredTimer("bid/issue_report/duration", nil),
 		},
 	}
+}
+
+func (b *bidSimulator) Close() {
+	close(b.exitCh)
+	b.chainHeadSub.Unsubscribe()
 }
 
 func (b *bidSimulator) Init(ctx context.Context, backend mev.Backend, config mev.Config, snowCtx *snow.Context, params *bidTypes.HexParams) {
@@ -191,7 +217,14 @@ func (b *bidSimulator) receivingBid() bool {
 }
 
 func (b *bidSimulator) Builders() map[common.Address]*builderclient.Client {
-	return b.builders
+	b.buildersMu.RLock()
+	defer b.buildersMu.RUnlock()
+
+	cp := make(map[common.Address]*builderclient.Client, len(b.builders))
+	for k, v := range b.builders {
+		cp[k] = v
+	}
+	return cp
 }
 
 func (b *bidSimulator) AddBuilder(ctx context.Context, builder common.Address, url string, params *bidTypes.HexParams) error {
@@ -262,7 +295,7 @@ func (b *bidSimulator) GetFinalBid(header *types.Header, currentBurn *uint256.In
 		log.Info("BidSimulator: final compare", "block", header.Number.Uint64(),
 			"validatorBurn", currentBurn.String(),
 			"validatorRewards", bestBid.packedValidatorReward.String(),
-			"blockBuilderBurn", bestBid.packedBlockReward.String())
+			"blockReward", bestBid.packedBlockReward.String())
 
 		mevProfit := new(big.Int).Add(bestBid.packedValidatorReward, bestBid.packedBlockReward)
 
@@ -321,45 +354,45 @@ func (b *bidSimulator) RemoveSimulatingBid(prevBlockHash common.Hash) {
 
 func (b *bidSimulator) mainLoop() {
 	defer b.chainHeadSub.Unsubscribe()
-
 	for {
 		select {
 		case req := <-b.simBidCh:
 			b.simBid(req.interruptCh, req.bid)
-
 		case <-b.chainHeadSub.Err():
+			return
+		case <-b.exitCh:
 			return
 		}
 	}
 }
 
 func (b *bidSimulator) newBidLoop() {
-	var (
-		interruptCh chan int32
-	)
+	var interruptCh chan int32
 
-	// commit aborts in-flight bid execution with given signal and resubmits a new one.
+	// commit aborts in-flight bid execution (if any) and schedules the new one.
 	commit := func(reason int32, bidRuntime *BidRuntime) {
 		if interruptCh != nil {
-			// each commit work will have its own interruptCh to stop work with a reason
 			interruptCh <- reason
 			close(interruptCh)
 		}
 		interruptCh = make(chan int32, 1)
-		select {
-		case b.simBidCh <- &simBidReq{interruptCh: interruptCh, bid: bidRuntime}:
-			log.Debug("BidSimulator: commit", "builder", bidRuntime.bid.Builder, "bidHash", bidRuntime.bid.Hash().Hex())
-		}
+		b.simBidCh <- &simBidReq{interruptCh: interruptCh, bid: bidRuntime}
+		log.Debug("BidSimulator: commit", "builder", bidRuntime.bid.Builder, "bidHash", bidRuntime.bid.Hash().Hex())
 	}
 
-	genDiscardedReply := func(betterBid *BidRuntime) error {
-		return fmt.Errorf("bid is discarded, current bestBid is [blockReward: %s, validatorReward: %s]", betterBid.expectedBlockReward, betterBid.expectedValidatorReward)
+	genDiscardedReply := func(better *BidRuntime) error {
+		return fmt.Errorf(
+			"bid is discarded, current bestBid is [blockReward: %s, validatorReward: %s]",
+			better.expectedBlockReward, better.expectedValidatorReward,
+		)
 	}
 
 	for {
 		select {
+		case <-b.exitCh:
+			return
 		case newBid := <-b.newBidCh:
-			bidRuntime, err := newBidRuntime(newBid.bid, b.config.ValidatorCommission)
+			rt, err := newBidRuntime(newBid.bid, b.config.ValidatorCommission)
 			if err != nil {
 				if newBid.feedback != nil {
 					newBid.feedback <- err
@@ -367,40 +400,52 @@ func (b *bidSimulator) newBidLoop() {
 				continue
 			}
 
+			should, ref := b.shouldSimulate(rt)
 			var replyErr error
-			// simulatingBid will be nil if there is no bid in simulation, compare with the bestBid instead
-			if simulatingBid := b.GetSimulatingBid(newBid.bid.ParentHash); simulatingBid != nil {
-				// simulatingBid always better than bestBid, so only compare with simulatingBid if a simulatingBid exists
-				if bidRuntime.isExpectedBetterThan(simulatingBid) {
-					commit(commitInterruptBetterBid, bidRuntime)
-				} else {
-					replyErr = genDiscardedReply(simulatingBid)
-				}
+			if should {
+				commit(commitInterruptBetterBid, rt)
+			} else if ref != nil {
+				replyErr = genDiscardedReply(ref)
 			} else {
-				// bestBid is nil means the bid is the first bid, otherwise the bid should compare with the bestBid
-				if bestBid := b.GetBestBid(newBid.bid.ParentHash); bestBid == nil ||
-					bidRuntime.isExpectedBetterThan(bestBid) {
-					commit(commitInterruptBetterBid, bidRuntime)
-				} else {
-					replyErr = genDiscardedReply(bestBid)
-				}
+				// Shouldn't happen
+				replyErr = errors.New("bid is discarded")
 			}
 
 			if newBid.feedback != nil {
 				newBid.feedback <- replyErr
-
 				log.Info("[BID ARRIVED]",
 					"block", newBid.bid.BlockNumber,
 					"builder", newBid.bid.Builder,
 					"accepted", replyErr == nil,
-					"blockReward", bidRuntime.expectedBlockReward,
-					"validatorReward", bidRuntime.expectedValidatorReward,
+					"blockReward", rt.expectedBlockReward,
+					"validatorReward", rt.expectedValidatorReward,
 					"tx", len(newBid.bid.Txs),
 					"hash", newBid.bid.Hash().TerminalString(),
 				)
 			}
 		}
 	}
+}
+
+// shouldSimulate decides whether to preempt the current work (if any) and
+// simulate the new bid. It returns (shouldCommit, referenceBid).
+// referenceBid is the currently-better runtime (simulating or best) used for msgs.
+func (b *bidSimulator) shouldSimulate(newRt *BidRuntime) (bool, *BidRuntime) {
+	parent := newRt.bid.ParentHash
+
+	// If there's an in-flight simulation, only preempt if strictly better.
+	if sim := b.GetSimulatingBid(parent); sim != nil {
+		if newRt.isExpectedBetterThan(sim) {
+			return true, sim
+		}
+		return false, sim
+	}
+
+	// Otherwise compare against the recorded best (if any).
+	if best := b.GetBestBid(parent); best == nil || newRt.isExpectedBetterThan(best) {
+		return true, best
+	}
+	return false, b.GetBestBid(parent)
 }
 
 func (b *bidSimulator) clearLoop() {
@@ -435,8 +480,13 @@ func (b *bidSimulator) clearLoop() {
 		b.simBidMu.Unlock()
 	}
 
-	for head := range b.chainHeadCh {
-		clearFn(head.Block.ParentHash(), head.Block.NumberU64())
+	for {
+		select {
+		case <-b.exitCh:
+			return
+		case head := <-b.chainHeadCh:
+			clearFn(head.Block.ParentHash(), head.Block.NumberU64())
+		}
 	}
 }
 
@@ -444,22 +494,21 @@ func (b *bidSimulator) clearLoop() {
 // if yes, return error, if not, add bid into newBid chan waiting for judge profit.
 func (b *bidSimulator) SendBid(_ context.Context, bid *bidTypes.Bid) error {
 	b.stats.bidReceivedCounter.Inc(1)
-	timer := time.NewTimer(1 * time.Second)
-	defer timer.Stop()
 
+	timeout := time.After(time.Second)
 	replyCh := make(chan error, 1)
 
 	select {
 	case b.newBidCh <- newBidPackage{bid: bid, feedback: replyCh}:
 		b.AddPending(bid.BlockNumber, bid.Builder, bid.Hash())
-	case <-timer.C:
+	case <-timeout:
 		return bidTypes.ErrMevBusy
 	}
 
 	select {
 	case reply := <-replyCh:
 		return reply
-	case <-timer.C:
+	case <-timeout:
 		return bidTypes.ErrMevBusy
 	}
 }
@@ -468,20 +517,22 @@ func (b *bidSimulator) CheckPending(blockNumber uint64, builder common.Address, 
 	b.pendingMu.Lock()
 	defer b.pendingMu.Unlock()
 
-	// check if bid exists or if builder sends too many bids
-	if _, ok := b.pending[blockNumber]; !ok {
-		b.pending[blockNumber] = make(map[common.Address]map[common.Hash]struct{})
+	pm, ok := b.pending[blockNumber]
+	if !ok {
+		pm = make(map[common.Address]map[common.Hash]struct{})
+		b.pending[blockNumber] = pm
+	}
+	bm, ok := pm[builder]
+	if !ok {
+		bm = make(map[common.Hash]struct{})
+		pm[builder] = bm
 	}
 
-	if _, ok := b.pending[blockNumber][builder]; !ok {
-		b.pending[blockNumber][builder] = make(map[common.Hash]struct{})
-	}
-
-	if _, ok := b.pending[blockNumber][builder][bidHash]; ok {
+	if _, ok = bm[bidHash]; ok {
 		return errors.New("bid already exists")
 	}
 
-	if len(b.pending[blockNumber][builder]) >= maxBidPerBuilderPerBlock {
+	if len(bm) >= maxBidPerBuilderPerBlock {
 		return errors.New("too many bids")
 	}
 
@@ -492,278 +543,296 @@ func (b *bidSimulator) AddPending(blockNumber uint64, builder common.Address, bi
 	b.pendingMu.Lock()
 	defer b.pendingMu.Unlock()
 
-	b.pending[blockNumber][builder][bidHash] = struct{}{}
+	pm, ok := b.pending[blockNumber]
+	if !ok {
+		pm = make(map[common.Address]map[common.Hash]struct{})
+		b.pending[blockNumber] = pm
+	}
+	bm, ok := pm[builder]
+	if !ok {
+		bm = make(map[common.Hash]struct{})
+		pm[builder] = bm
+	}
+	bm[bidHash] = struct{}{}
 }
 
 // simBid simulates a newBid with txs.
 // simBid does not enable state prefetching when commit transaction.
-func (b *bidSimulator) simBid(interruptCh chan int32, bidRuntime *BidRuntime) {
-	// prevent from stopping happen in time interval from sendBid to simBid
+func (b *bidSimulator) simBid(interruptCh chan int32, rt *BidRuntime) {
 	if !b.receivingBid() {
 		return
 	}
 
-	var (
-		startTS = time.Now()
+	startTS := time.Now()
+	parentHash := rt.bid.ParentHash
+	b.SetSimulatingBid(parentHash, rt)
 
-		blockNumber = bidRuntime.bid.BlockNumber
-		parentHash  = bidRuntime.bid.ParentHash
-		builder     = bidRuntime.bid.Builder
-
-		bidTxs   = bidRuntime.bid.Txs
-		bidTxLen = len(bidTxs)
-		payBidTx = bidTxs[bidTxLen-1]
-		burnTx   = bidTxs[bidTxLen-2]
-
-		err     error
-		success bool
-	)
-
-	// ensure simulation exited then start next simulation
-	b.SetSimulatingBid(parentHash, bidRuntime)
-
+	// Standard defers
 	defer func(simStart time.Time) {
-		logCtx := []any{
-			"blockNumber", blockNumber,
-			"parentHash", parentHash,
-			"builder", builder,
-			"gasUsed", bidRuntime.bid.GasUsed,
+		if rt.env != nil && len(rt.env.receipts) == 0 {
+			// failed early; ensure we stop prefetcher etc.
+			rt.env.discard()
 		}
-
-		if bidRuntime.env != nil {
-			logCtx = append(logCtx, "gasLimit", bidRuntime.env.header.GasLimit)
-
-			if err != nil || !success {
-				bidRuntime.env.discard()
-			}
-		}
-
-		if err != nil {
-			logCtx = append(logCtx, "err", err)
-			log.Info("BidSimulator: simulation failed", logCtx...)
-
-			go b.reportIssue(bidRuntime, err)
-		}
-
 		b.RemoveSimulatingBid(parentHash)
-		close(bidRuntime.finished)
-
-		if success {
-			bidRuntime.duration = time.Since(simStart)
+		close(rt.finished)
+		if rt.env != nil && rt.env.state != nil && rt.env.tcount == 0 {
+			rt.env.discard()
+		}
+		if rt.duration == 0 && len(rt.env.receipts) > 0 {
+			rt.duration = time.Since(simStart)
 			b.stats.bidSimTimer.UpdateSince(simStart)
-
-			// only recommit self bid when newBidCh is empty
-			if len(b.newBidCh) > 0 {
-				return
-			}
-
-			select {
-			case b.newBidCh <- newBidPackage{bid: bidRuntime.bid}:
-				log.Debug("BidSimulator: recommit", "builder", bidRuntime.bid.Builder, "bidHash", bidRuntime.bid.Hash().Hex())
-			default:
-			}
 		}
 	}(startTS)
 
-	// the environment created does not enable trie prefetching since we already have all the txs in memory
-	if bidRuntime.env, err = b.bidWorker.createEnvironment(
+	var err error
+	rt.env, err = b.bidWorker.createEnvironment(
 		&precompileconfig.PredicateContext{SnowCtx: b.snowCtx, ProposerVMBlockCtx: nil},
-		bidRuntime.bid.ParentHash,
-	); err != nil {
+		rt.bid.ParentHash,
+	)
+	if err != nil {
+		b.reportIssue(rt, err)
 		return
 	}
 
-	gasLimit := bidRuntime.env.header.GasLimit
-	if bidRuntime.env.gasPool == nil {
-		bidRuntime.env.gasPool = new(core.GasPool).AddGas(gasLimit)
-		bidRuntime.env.gasPool.SubGas(params.PayBidTxGasLimit)
+	// Prepare gas pool for reserved burn/payBid gas
+	gasLimit := rt.env.header.GasLimit
+	if rt.env.gasPool == nil {
+		rt.env.gasPool = new(core.GasPool).AddGas(gasLimit)
+		rt.env.gasPool.SubGas(params.PayBidTxGasLimit) // reserve space like before
 	}
-
-	if bidRuntime.bid.GasUsed > bidRuntime.env.gasPool.Gas() {
-		err = errors.New("gas used exceeds gas limit")
+	if rt.bid.GasUsed > rt.env.gasPool.Gas() {
+		b.reportIssue(rt, errors.New("gas used exceeds gas limit"))
 		return
 	}
 
-	bidRuntime.balanceBefore = bidRuntime.env.state.GetBalance(bidRuntime.env.header.Coinbase).ToBig()
-	bidRuntime.balanceBeforeWallet = bidRuntime.env.state.GetBalance(b.config.ValidatorWallet).ToBig()
-	bidRuntime.balanceBeforeBurn = bidRuntime.env.state.GetBalance(burnAddress).ToBig()
+	// Balances snapshot for accounting
+	rt.balanceBefore = rt.env.state.GetBalance(rt.env.header.Coinbase).ToBig()
+	rt.balanceBeforeWallet = rt.env.state.GetBalance(b.config.ValidatorWallet).ToBig()
+	rt.balanceBeforeBurn = rt.env.state.GetBalance(burnAddress).ToBig()
 
-	// commit transactions in bid
-	for _, tx := range bidRuntime.bid.Txs {
+	txs := rt.bid.Txs
+	n := len(txs)
+	if n < 2 {
+		b.reportIssue(rt, errors.New("bid must contain at least burn and payBid tx"))
+		return
+	}
+	bodyEnd := n - 2
+	burnTx := txs[n-2]
+	payTx := txs[n-1]
+
+	// === 1) Body txs
+	for i := 0; i < bodyEnd; i++ {
 		select {
 		case <-interruptCh:
-			err = errors.New("simulation abort due to better bid arrived")
+			b.reportIssue(rt, errors.New("simulation abort due to better bid arrived"))
 			return
-
 		default:
 		}
+		tx := txs[i]
+		mustSucceed := rt.bid.UnRevertible.Contains(tx.Hash())
 
-		if bidRuntime.env.tcount == bidTxLen-2 {
-			break
+		if _, err = commitAndCheck(b.bidWorker, rt.env, tx, mustSucceed); err != nil {
+			b.reportIssue(rt, fmt.Errorf("invalid tx in bid, %v", err))
+			return
 		}
+	}
 
-		err = bidRuntime.commitTransaction(b.chain, b.chainConfig, tx, bidRuntime.bid.UnRevertible.Contains(tx.Hash()))
+	// Reward sanity (block fee part)
+	if err = b.checkBidReward(rt); err != nil {
+		b.reportIssue(rt, err)
+		return
+	}
+
+	// Min gas price check (only for non-mempool txs)
+	if err = b.checkMinGasPrice(rt); err != nil {
+		b.reportIssue(rt, err)
+		return
+	}
+
+	// Burn tx (must succeed)
+	rt.env.gasPool.AddGas(params.PayBidTxGasLimit)
+	if _, err = commitAndCheck(b.bidWorker, rt.env, burnTx, true); err != nil {
+		b.reportIssue(rt, fmt.Errorf("invalid tx in bid, %v", err))
+		return
+	}
+	if err = b.checkBidBurn(rt); err != nil {
+		b.reportIssue(rt, err)
+		return
+	}
+
+	// Pay-bid tx (must succeed)
+	rt.env.gasPool.AddGas(params.PayBidTxGasLimit)
+	if _, err = commitAndCheck(b.bidWorker, rt.env, payTx, true); err != nil {
+		b.reportIssue(rt, fmt.Errorf("invalid tx in bid, %v", err))
+		return
+	}
+	if err = b.checkValidatorReward(rt); err != nil {
+		b.reportIssue(rt, err)
+		return
+	}
+
+	// Size limit
+	if rt.env.size > targetTxsSize {
+		b.reportIssue(rt, errors.New("invalid bid size"))
+		return
+	}
+
+	// Publish result
+	_ = b.tryPublishBest(parentHash, rt)
+
+	rt.duration = time.Since(startTS)
+}
+
+func (b *bidSimulator) tryPublishBest(parent common.Hash, rt *BidRuntime) (won bool) {
+	best := b.GetBestBid(parent)
+	if best == nil || rt.packedBlockReward.Cmp(best.packedBlockReward) >= 0 {
+		b.SetBestBid(parent, rt)
+		return true
+	}
+	if len(b.newBidCh) == 0 { // enqueue prior best for re-sim if queue is empty
+		select {
+		case b.newBidCh <- newBidPackage{bid: best.bid}:
+		default:
+		}
+	}
+	return false
+}
+
+func (b *bidSimulator) checkBidReward(rt *BidRuntime) error {
+	rt.packReward()
+	if !rt.validReward() {
+		return errors.New("reward does not achieve the gas expectation")
+	}
+	return nil
+}
+
+func (b *bidSimulator) checkBidBurn(rt *BidRuntime) error {
+	rt.packBurnShare()
+	if !rt.validBurnShare() {
+		return errors.New("reward does not achieve the burn expectation")
+	}
+	return nil
+}
+
+func (b *bidSimulator) checkValidatorReward(rt *BidRuntime) error {
+	rt.packValidatorReward(b.config.ValidatorWallet)
+	if !rt.validValidatorReward() {
+		return errors.New("reward does not achieve the validator expectation")
+	}
+	return nil
+}
+
+// Average price only for txs NOT in the mempool, identical to your logic.
+func (b *bidSimulator) checkMinGasPrice(rt *BidRuntime) error {
+	var gasUsed uint64
+	gasFee := new(big.Int)
+	for i, rcpt := range rt.env.receipts {
+		tx := rt.env.txs[i]
+		if b.txpool.Has(tx.Hash()) {
+			continue
+		}
+		gasUsed += rcpt.GasUsed
+
+		effectiveTip, err := tx.EffectiveGasTip(rt.env.header.BaseFee)
 		if err != nil {
-			log.Error("BidSimulator: failed to commit tx", "bidHash", bidRuntime.bid.Hash(), "tx", tx.Hash(), "err", err)
-			err = fmt.Errorf("invalid tx in bid, %v", err)
-			return
+			return errors.New("failed to calculate effective tip")
+		}
+		if rt.env.header.BaseFee != nil {
+			effectiveTip.Add(effectiveTip, rt.env.header.BaseFee)
+		}
+		gasFee.Add(gasFee, new(big.Int).Mul(effectiveTip, new(big.Int).SetUint64(rcpt.GasUsed)))
+
+		if tx.Type() == types.BlobTxType {
+			gasFee.Add(gasFee, new(big.Int).Mul(rcpt.BlobGasPrice, new(big.Int).SetUint64(rcpt.BlobGasUsed)))
 		}
 	}
+	if gasUsed == 0 {
+		return nil
+	}
+	avg := new(big.Int).Div(gasFee, new(big.Int).SetUint64(gasUsed))
+	if avg.Cmp(b.minGasPrice) < 0 {
+		return fmt.Errorf("bid gas price is lower than min gas price, bid:%v, min:%v", avg, b.minGasPrice)
+	}
+	return nil
+}
 
-	// check if bid reward is valid
-	{
-		bidRuntime.packReward()
-		if !bidRuntime.validReward() {
-			err = errors.New("reward does not achieve the gas expectation")
-			return
+// commitAndCheck calls worker.commitTransaction and enforces success rules.
+//   - mustSucceed: if true, fail the simulation when the receipt is Failed.
+//     Use this for unRevertible body txs and for burn/payBid txs.
+func commitAndCheck(w bidWorker, env *environment, tx *types.Transaction, mustSucceed bool) (*types.Receipt, error) {
+	// Required by the worker path
+	env.state.SetTxContext(tx.Hash(), env.tcount)
+
+	// Delegate to worker
+	if _, err := w.commitTransaction(env, tx, env.header.Coinbase); err != nil {
+		return nil, err
+	}
+	if len(env.receipts) == 0 {
+		return nil, errors.New("commitTransaction returned no receipt")
+	}
+	// Safe: worker appended the receipt on success
+	rcpt := env.receipts[len(env.receipts)-1]
+
+	// Enforce "must succeed" policy
+	if mustSucceed && rcpt.Status == types.ReceiptStatusFailed {
+		return rcpt, ErrUnrevertibleFailed
+	}
+	// Count only after success
+	env.tcount++
+	return rcpt, nil
+}
+
+func (b *bidSimulator) reportIssue(rt *BidRuntime, err error) {
+	kind := issueKindFromError(err)
+	b.incIssueMetrics(rt.bid.Builder, kind)
+
+	cli := b.builders[rt.bid.Builder]
+	if cli != nil {
+		b.stats.issueReportSent.Inc(1)
+		start := time.Now()
+		repErr := cli.ReportIssue(context.Background(), &bidTypes.BidIssue{
+			Builder: rt.bid.Builder,
+			BidHash: rt.bid.Hash(),
+			Message: err.Error(),
+		})
+		b.stats.issueReportDuration.UpdateSince(start)
+
+		if repErr != nil {
+			b.stats.issueReportFail.Inc(1)
+			log.Warn("BidSimulator: failed to report issue", "builder", rt.bid.Builder, "err", repErr)
+		} else {
+			b.stats.issueReportSuccess.Inc(1)
 		}
-	}
-
-	// check if bid gas price is lower than min gas price
-	{
-		bidGasUsed := uint64(0)
-		bidGasFee := big.NewInt(0)
-
-		for i, receipt := range bidRuntime.env.receipts {
-			tx := bidRuntime.env.txs[i]
-			if !b.txpool.Has(tx.Hash()) {
-				bidGasUsed += receipt.GasUsed
-				effectiveTip, er := tx.EffectiveGasTip(bidRuntime.env.header.BaseFee)
-				if er != nil {
-					err = errors.New("failed to calculate effective tip")
-					return
-				}
-
-				if bidRuntime.env.header.BaseFee != nil {
-					effectiveTip.Add(effectiveTip, bidRuntime.env.header.BaseFee)
-				}
-
-				gasFee := new(big.Int).Mul(effectiveTip, new(big.Int).SetUint64(receipt.GasUsed))
-				bidGasFee.Add(bidGasFee, gasFee)
-
-				if tx.Type() == types.BlobTxType {
-					blobFee := new(big.Int).Mul(receipt.BlobGasPrice, new(big.Int).SetUint64(receipt.BlobGasUsed))
-					bidGasFee.Add(bidGasFee, blobFee)
-				}
-			}
-		}
-
-		// if bid txs are all from mempool, do not check gas price
-		if bidGasUsed != 0 {
-			bidGasPrice := new(big.Int).Div(bidGasFee, new(big.Int).SetUint64(bidGasUsed))
-			if bidGasPrice.Cmp(b.minGasPrice) < 0 {
-				err = fmt.Errorf("bid gas price is lower than min gas price, bid:%v, min:%v", bidGasPrice, b.minGasPrice)
-				return
-			}
-		}
-	}
-
-	// commit burnTx
-	bidRuntime.env.gasPool.AddGas(params.PayBidTxGasLimit)
-	err = bidRuntime.commitTransaction(b.chain, b.chainConfig, burnTx, true)
-	if err != nil {
-		log.Error("BidSimulator: failed to commit tx", "builder", bidRuntime.bid.Builder,
-			"bidHash", bidRuntime.bid.Hash(), "tx", burnTx.Hash(), "err", err)
-		err = fmt.Errorf("invalid tx in bid, %v", err)
-		return
-	}
-
-	// check if bid burn is valid
-	{
-		bidRuntime.packBurnShare()
-		if !bidRuntime.validBurnShare() {
-			err = errors.New("reward does not achieve the burn expectation")
-			return
-		}
-	}
-
-	// commit payBidTx at the end of the block
-	bidRuntime.env.gasPool.AddGas(params.PayBidTxGasLimit)
-	err = bidRuntime.commitTransaction(b.chain, b.chainConfig, payBidTx, true)
-	if err != nil {
-		log.Error("BidSimulator: failed to commit tx", "builder", bidRuntime.bid.Builder,
-			"bidHash", bidRuntime.bid.Hash(), "tx", payBidTx.Hash(), "err", err)
-		err = fmt.Errorf("invalid tx in bid, %v", err)
-		return
-	}
-
-	// check if bid reward is valid
-	{
-		bidRuntime.packValidatorReward(b.config.ValidatorWallet)
-		if !bidRuntime.validValidatorReward() {
-			err = errors.New("reward does not achieve the validator expectation")
-			return
-		}
-	}
-
-	// check bid size
-	if totalTxsSize := bidRuntime.env.size; totalTxsSize > targetTxsSize {
-		log.Error("BidSimulator: failed to check bid size", "builder", bidRuntime.bid.Builder,
-			"bidHash", bidRuntime.bid.Hash(), "env.size", bidRuntime.env.size)
-		err = errors.New("invalid bid size")
-		return
-	}
-
-	bestBid := b.GetBestBid(parentHash)
-	if bestBid == nil {
-		log.Info("[BID RESULT]", "win", "true[first]", "builder", bidRuntime.bid.Builder, "hash", bidRuntime.bid.Hash().TerminalString())
-		b.SetBestBid(bidRuntime.bid.ParentHash, bidRuntime)
-		success = true
-		return
-	}
-
-	if bidRuntime.bid.Hash() != bestBid.bid.Hash() {
-		log.Info("[BID RESULT]",
-			"win", bidRuntime.packedBlockReward.Cmp(bestBid.packedBlockReward) >= 0,
-
-			"bidHash", bidRuntime.bid.Hash().TerminalString(),
-			"bestHash", bestBid.bid.Hash().TerminalString(),
-
-			"bidGasFee", bidRuntime.packedBlockReward,
-			"bestGasFee", bestBid.packedBlockReward,
-
-			"bidBlockTx", bidRuntime.env.tcount,
-			"bestBlockTx", bestBid.env.tcount,
-
-			"simElapsed", time.Since(startTS),
-		)
-	}
-
-	// this is the simplest strategy: best for all the delegators.
-	if bidRuntime.packedBlockReward.Cmp(bestBid.packedBlockReward) >= 0 {
-		b.SetBestBid(bidRuntime.bid.ParentHash, bidRuntime)
-		success = true
-		return
-	}
-
-	// only recommit last best bid when newBidCh is empty
-	if len(b.newBidCh) > 0 {
-		return
-	}
-
-	select {
-	case b.newBidCh <- newBidPackage{bid: bestBid.bid}:
-		log.Debug("BidSimulator: recommit last bid", "builder", bidRuntime.bid.Builder, "bidHash", bidRuntime.bid.Hash().Hex())
-	default:
 	}
 }
 
-// reportIssue reports the issue to the mev-sentry
-func (b *bidSimulator) reportIssue(bidRuntime *BidRuntime, err error) {
-	metrics.GetOrRegisterCounter(fmt.Sprintf("bid/err/%v", bidRuntime.bid.Builder), nil).Inc(1)
-
-	cli := b.builders[bidRuntime.bid.Builder]
-	if cli != nil {
-		err = cli.ReportIssue(context.Background(), &bidTypes.BidIssue{
-			Builder: bidRuntime.bid.Builder,
-			BidHash: bidRuntime.bid.Hash(),
-			Message: err.Error(),
-		})
-
-		if err != nil {
-			log.Warn("BidSimulator: failed to report issue", "builder", bidRuntime.bid.Builder, "err", err)
-		}
+func issueKindFromError(err error) string {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "gas used exceeds gas limit"):
+		return "gas_limit"
+	case strings.Contains(msg, "invalid tx in bid"):
+		return "invalid_tx"
+	case strings.Contains(msg, "simulation abort"):
+		return "aborted_better_bid"
+	case strings.Contains(msg, "min gas price"):
+		return "min_gas_price"
+	case strings.Contains(msg, "burn expectation"):
+		return "burn_expectation"
+	case strings.Contains(msg, "validator expectation"):
+		return "validator_expectation"
+	case strings.Contains(msg, "invalid bid size"):
+		return "size_limit"
+	default:
+		return "other"
 	}
+}
+
+func (b *bidSimulator) incIssueMetrics(builder common.Address, kind string) {
+	b.stats.errorsTotal.Inc(1)
+	b.stats.errorsRate.Mark(1)
+	metrics.GetOrRegisterCounter(fmt.Sprintf("bid/errors_kind/%s", kind), nil).Inc(1)
+	metrics.GetOrRegisterCounter(fmt.Sprintf("bid/errors_by_builder/%s", builder.Hex()), nil).Inc(1)
 }
 
 type BidRuntime struct {
@@ -853,72 +922,4 @@ func (r *BidRuntime) packValidatorReward(wallet common.Address) {
 func (r *BidRuntime) packBurnShare() {
 	r.packedBurnShare = r.env.state.GetBalance(burnAddress).ToBig()
 	r.packedBurnShare.Sub(r.packedBurnShare, r.balanceBeforeBurn)
-}
-
-func (r *BidRuntime) commitTransaction(chain *core.BlockChain, chainConfig *params.ChainConfig, tx *types.Transaction, unRevertible bool) error {
-	var (
-		env          = r.env
-		sc           *types.BlobTxSidecar
-		blockContext vm.BlockContext
-		coinbase     = env.header.Coinbase
-	)
-
-	// Start executing the transaction
-	r.env.state.SetTxContext(tx.Hash(), r.env.tcount)
-
-	if tx.Type() == types.BlobTxType {
-		sc = tx.BlobTxSidecar()
-		if sc == nil {
-			return errors.New("blob transaction without blobs in miner")
-		}
-		// Checking against blob gas limit: It's kind of ugly to perform this check here, but there
-		// isn't really a better place right now. The blob gas limit is checked at block validation time
-		// and not during execution. This means core.ApplyTransaction will not return an error if the
-		// tx has too many blobs. So we have to explicitly check it here.
-		if (env.blobs+len(sc.Blobs))*params.BlobTxBlobGasPerBlob > params.MaxBlobGasPerBlock {
-			return errors.New("max data blobs reached")
-		}
-	}
-
-	rulesExtra := params.GetRulesExtra(env.rules)
-	if rulesExtra.IsDurango {
-		results, err := core.CheckPredicates(env.rules, env.predicateContext, tx)
-		if err != nil {
-			log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
-			return err
-		}
-		env.predicateResults.SetTxResults(tx.Hash(), results)
-
-		predicateResultsBytes, err := env.predicateResults.Bytes()
-		if err != nil {
-			return fmt.Errorf("failed to marshal predicate results: %w", err)
-		}
-		blockContext = core.NewEVMBlockContextWithPredicateResults(rulesExtra.AvalancheRules, env.header, chain, &coinbase, predicateResultsBytes)
-	} else {
-		blockContext = core.NewEVMBlockContext(env.header, chain, &coinbase)
-	}
-
-	receipt, err := core.ApplyTransaction(chainConfig, chain, blockContext, env.gasPool, env.state, env.header, tx,
-		&env.header.GasUsed, *chain.GetVMConfig())
-	if err != nil {
-		return err
-	} else if unRevertible && receipt.Status == types.ReceiptStatusFailed {
-		return errors.New("no revertible transaction failed")
-	}
-
-	if tx.Type() == types.BlobTxType {
-		env.txs = append(env.txs, tx.WithoutBlobTxSidecar())
-		env.receipts = append(env.receipts, receipt)
-		env.sidecars = append(env.sidecars, sc)
-		env.blobs += len(sc.Blobs)
-		*env.header.BlobGasUsed += receipt.BlobGasUsed
-	} else {
-		env.txs = append(env.txs, tx)
-		env.receipts = append(env.receipts, receipt)
-		env.size += tx.Size()
-	}
-
-	r.env.tcount++
-
-	return nil
 }
