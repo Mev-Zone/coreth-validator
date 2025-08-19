@@ -14,9 +14,9 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/libevm/common"
 	types2 "github.com/ava-labs/libevm/core/types"
+	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/metrics"
 	"github.com/mev-zone/coreth-validator/core/types"
-	"github.com/mev-zone/coreth-validator/mev/builderclient"
 	"github.com/mev-zone/coreth-validator/params"
 )
 
@@ -41,11 +41,15 @@ type EthereumClient interface {
 	CurrentHeader() *types2.Header
 }
 
+type Builder interface {
+	Bid(ctx context.Context, result *types.BidArgs, args *types.HexParams) error
+}
+
 type BidSimulatorClient interface {
 	ExistBuilder(builder common.Address) bool
 	CheckPending(blockNumber uint64, builder common.Address, bidHash common.Hash) error
 	SendBid(ctx context.Context, bid *types.Bid) error
-	Builders() map[common.Address]*builderclient.Client
+	Builders() map[common.Address]Builder
 }
 
 type backend struct {
@@ -73,7 +77,7 @@ func NewBackend(
 func (m *backend) FetchBids(ctx context.Context, height int64) error {
 	var wg sync.WaitGroup
 	var bids []types.BidArgs
-	errors := make(chan error, len(m.config.Builders))
+	errors := make([]error, 0)
 
 	p := &types.BidParams{
 		Height: height,
@@ -91,26 +95,26 @@ func (m *backend) FetchBids(ctx context.Context, height int64) error {
 			var result types.BidArgs
 			err = builder.Bid(ctx, &result, msg)
 			if err != nil {
-				errors <- fmt.Errorf("fail to fetch bid: %w", err)
+				errors = append(errors, fmt.Errorf("fail to fetch bid: %v: %w", k, err))
 				metrics.GetOrRegisterCounter(fmt.Sprintf("bid/fetch/err/%v", k), nil).Inc(1)
 			} else {
 				bids = append(bids, result)
-				errors <- nil
 			}
 		}()
 	}
 
 	wg.Wait()
-	close(errors)
 
-	for err = range errors {
+	for _, bid := range bids {
+		err = m.sendBid(ctx, bid)
 		if err != nil {
-			return err
+			errors = append(errors, err)
 		}
 	}
 
-	for _, bid := range bids {
-		_ = m.sendBid(ctx, bid)
+	for _, err = range errors {
+		log.Error("Error fetching bid", "error", err)
+		return err
 	}
 
 	return nil

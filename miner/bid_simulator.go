@@ -76,7 +76,7 @@ type BidFetcher interface {
 	ExistBuilder(builder common.Address) bool
 	CheckPending(blockNumber uint64, builder common.Address, bidHash common.Hash) error
 	SendBid(ctx context.Context, bid *bidTypes.Bid) error
-	Builders() map[common.Address]*builderclient.Client
+	Builders() map[common.Address]mev.Builder
 }
 
 type bidWorker interface {
@@ -216,11 +216,11 @@ func (b *bidSimulator) receivingBid() bool {
 	return b.bidReceiving.Load()
 }
 
-func (b *bidSimulator) Builders() map[common.Address]*builderclient.Client {
+func (b *bidSimulator) Builders() map[common.Address]mev.Builder {
 	b.buildersMu.RLock()
 	defer b.buildersMu.RUnlock()
 
-	cp := make(map[common.Address]*builderclient.Client, len(b.builders))
+	cp := make(map[common.Address]mev.Builder, len(b.builders))
 	for k, v := range b.builders {
 		cp[k] = v
 	}
@@ -274,11 +274,7 @@ func (b *bidSimulator) SetBestBid(prevBlockHash common.Hash, bid *BidRuntime) {
 }
 
 func (b *bidSimulator) GetFinalBid(header *types.Header, currentBurn *uint256.Int) *BidRuntime {
-	err := b.backend.FetchBids(context.Background(), header.Number.Int64())
-	if err != nil {
-		log.Error("BidSimulator: failed to fetch bids", "err", err)
-		return nil
-	}
+	_ = b.backend.FetchBids(context.Background(), header.Number.Int64())
 
 	if pendingBid := b.GetSimulatingBid(header.ParentHash); pendingBid != nil {
 		waitBidTimer := time.NewTimer(waitMEVMinerEndTimeLimit)
