@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -14,11 +15,15 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/libevm/common"
 	types2 "github.com/ava-labs/libevm/core/types"
-	"github.com/ava-labs/libevm/log"
-	"github.com/ava-labs/libevm/metrics"
 	"github.com/mev-zone/coreth-validator/core/types"
 	"github.com/mev-zone/coreth-validator/params"
+	"go.uber.org/zap"
 )
+
+type errBuilder struct {
+	Err     error
+	Builder common.Address
+}
 
 type BuilderConfig struct {
 	Address common.Address `json:"address"`
@@ -34,7 +39,7 @@ type Config struct {
 type Backend interface {
 	SetBidSimulator(client BidSimulatorClient)
 	MevParams() (*types.HexParams, error)
-	FetchBids(ctx context.Context, height int64) error
+	FetchBids(ctx context.Context, height int64) errBuilder
 }
 
 type EthereumClient interface {
@@ -74,50 +79,96 @@ func NewBackend(
 	}
 }
 
-func (m *backend) FetchBids(ctx context.Context, height int64) error {
-	var wg sync.WaitGroup
-	var bids []types.BidArgs
-	errors := make([]error, 0)
-
-	p := &types.BidParams{
-		Height: height,
+func (m *backend) FetchBids(ctx context.Context, height int64) errBuilder {
+	builders := m.bidSimulator.Builders()
+	if len(builders) == 0 {
+		return errBuilder{Err: errors.New("no registered builders")}
 	}
+
+	p := &types.BidParams{Height: height}
 
 	msg, err := m.sign(p)
 	if err != nil {
-		return err
+		return errBuilder{Err: err}
 	}
 
-	for k, builder := range m.bidSimulator.Builders() {
-		wg.Add(1)
+	bidsCh := make(chan types.BidArgs, len(builders))
+	errCh := make(chan errBuilder, len(builders))
+
+	var wg sync.WaitGroup
+	wg.Add(len(builders))
+
+	for addr, b := range builders {
+		addr := addr
+		b := b
+
 		go func() {
 			defer wg.Done()
+
+			bctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+
 			var result types.BidArgs
-			err = builder.Bid(ctx, &result, msg)
-			if err != nil {
-				errors = append(errors, fmt.Errorf("fail to fetch bid: %v: %w", k, err))
-				metrics.GetOrRegisterCounter(fmt.Sprintf("bid/fetch/err/%v", k), nil).Inc(1)
-			} else {
-				bids = append(bids, result)
+			if err := b.Bid(bctx, &result, msg); err != nil {
+				errCh <- errBuilder{Err: err, Builder: addr}
+				return
 			}
+			bidsCh <- result
 		}()
 	}
 
-	wg.Wait()
+	// Close channels once all bidders finished.
+	go func() {
+		wg.Wait()
+		close(bidsCh)
+		close(errCh)
+	}()
+
+	var (
+		bids   []types.BidArgs
+		errors []errBuilder
+	)
+	for bid := range bidsCh {
+		bids = append(bids, bid)
+	}
+	for e := range errCh {
+		errors = append(errors, e)
+	}
+
+	sendErrs := make(chan errBuilder, len(bids))
+	var sendWG sync.WaitGroup
+	sendWG.Add(len(bids))
 
 	for _, bid := range bids {
-		err = m.sendBid(ctx, bid)
-		if err != nil {
-			errors = append(errors, err)
+		bid := bid
+		go func() {
+			defer sendWG.Done()
+			sctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+			if err := m.sendBid(sctx, bid); err != nil {
+				sendErrs <- errBuilder{Err: err}
+			}
+		}()
+	}
+	go func() {
+		sendWG.Wait()
+		close(sendErrs)
+	}()
+
+	for e := range sendErrs {
+		errors = append(errors, e)
+	}
+
+	if len(errors) > 0 {
+		for _, err := range errors {
+			m.ctx.Log.Warn("FetchBids additional error",
+				zap.String("builder", err.Builder.Hex()),
+				zap.Error(err.Err))
 		}
+		return errors[0]
 	}
 
-	for _, err = range errors {
-		log.Error("Error fetching bid", "error", err)
-		return err
-	}
-
-	return nil
+	return errBuilder{}
 }
 
 // SendBid receives bid from the builders.

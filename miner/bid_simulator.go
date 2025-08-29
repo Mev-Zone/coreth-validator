@@ -16,7 +16,6 @@ import (
 	"github.com/ava-labs/libevm/common"
 	"github.com/ava-labs/libevm/core/types"
 	"github.com/ava-labs/libevm/event"
-	"github.com/ava-labs/libevm/log"
 	"github.com/ava-labs/libevm/metrics"
 	"github.com/holiman/uint256"
 	"github.com/mev-zone/coreth-validator/core"
@@ -27,6 +26,7 @@ import (
 	"github.com/mev-zone/coreth-validator/params"
 	"github.com/mev-zone/coreth-validator/precompile/precompileconfig"
 	"github.com/mev-zone/coreth-validator/rpc"
+	"go.uber.org/zap"
 )
 
 var _ bidWorker = (*worker)(nil)
@@ -84,6 +84,10 @@ type bidWorker interface {
 	commitTransaction(env *environment, tx *types.Transaction, coinbase common.Address) ([]*types.Log, error)
 }
 
+type BlockChain interface {
+	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
+}
+
 // simBidReq is the request for simulating a bid
 type simBidReq struct {
 	bid         *BidRuntime
@@ -110,12 +114,28 @@ type simStats struct {
 	issueReportDuration metrics.Timer
 }
 
+func newStats() simStats {
+	return simStats{
+		profitableCounter:   metrics.GetOrRegisterCounter("bid/profitable", nil),
+		unprofitableCounter: metrics.GetOrRegisterCounter("bid/unprofitable", nil),
+		bidReceivedCounter:  metrics.GetOrRegisterCounter("bid/received", nil),
+		bidSimTimer:         metrics.NewRegisteredTimer("bid/sim/duration", nil),
+
+		errorsTotal:         metrics.GetOrRegisterCounter("bid/errors_total", nil),
+		errorsRate:          metrics.GetOrRegisterMeter("bid/errors_rate", nil),
+		issueReportSent:     metrics.GetOrRegisterCounter("bid/issue_report/sent_total", nil),
+		issueReportSuccess:  metrics.GetOrRegisterCounter("bid/issue_report/success_total", nil),
+		issueReportFail:     metrics.GetOrRegisterCounter("bid/issue_report/fail_total", nil),
+		issueReportDuration: metrics.NewRegisteredTimer("bid/issue_report/duration", nil),
+	}
+}
+
 // bidSimulator is in charge of receiving bid from builders, reporting issue to builders.
 // And take care of bid simulation, rewards computing, best bid maintaining.
 type bidSimulator struct {
 	config      *mev.Config
 	minGasPrice *big.Int
-	chain       *core.BlockChain
+	chain       BlockChain
 	txpool      *txpool.TxPool
 	chainConfig *params.ChainConfig
 	bidWorker   bidWorker
@@ -168,19 +188,7 @@ func newBidSimulator(
 		pending:       make(map[uint64]map[common.Address]map[common.Hash]struct{}),
 		bestBid:       make(map[common.Hash]*BidRuntime),
 		simulatingBid: make(map[common.Hash]*BidRuntime),
-		stats: simStats{
-			profitableCounter:   metrics.GetOrRegisterCounter("bid/profitable", nil),
-			unprofitableCounter: metrics.GetOrRegisterCounter("bid/unprofitable", nil),
-			bidReceivedCounter:  metrics.GetOrRegisterCounter("bid/received", nil),
-			bidSimTimer:         metrics.NewRegisteredTimer("bid/sim/duration", nil),
-
-			errorsTotal:         metrics.GetOrRegisterCounter("bid/errors_total", nil),
-			errorsRate:          metrics.GetOrRegisterMeter("bid/errors_rate", nil),
-			issueReportSent:     metrics.GetOrRegisterCounter("bid/issue_report/sent_total", nil),
-			issueReportSuccess:  metrics.GetOrRegisterCounter("bid/issue_report/success_total", nil),
-			issueReportFail:     metrics.GetOrRegisterCounter("bid/issue_report/fail_total", nil),
-			issueReportDuration: metrics.NewRegisteredTimer("bid/issue_report/duration", nil),
-		},
+		stats:         newStats(),
 	}
 }
 
@@ -198,7 +206,7 @@ func (b *bidSimulator) Init(ctx context.Context, backend mev.Backend, config mev
 	b.dialBuilders(ctx, params)
 
 	if len(b.builders) == 0 {
-		log.Warn("BidSimulator: no valid builders")
+		b.snowCtx.Log.Warn("BidSimulator: no valid builders")
 	}
 
 	go b.clearLoop()
@@ -208,7 +216,7 @@ func (b *bidSimulator) Init(ctx context.Context, backend mev.Backend, config mev
 
 func (b *bidSimulator) dialBuilders(ctx context.Context, params *bidTypes.HexParams) {
 	for _, v := range b.config.Builders {
-		_ = b.AddBuilder(ctx, v.Address, v.URL, params)
+		b.AddBuilder(ctx, v.Address, v.URL, params)
 	}
 }
 
@@ -227,7 +235,7 @@ func (b *bidSimulator) Builders() map[common.Address]mev.Builder {
 	return cp
 }
 
-func (b *bidSimulator) AddBuilder(ctx context.Context, builder common.Address, url string, params *bidTypes.HexParams) error {
+func (b *bidSimulator) AddBuilder(ctx context.Context, builder common.Address, url string, params *bidTypes.HexParams) {
 	b.buildersMu.Lock()
 	defer b.buildersMu.Unlock()
 
@@ -238,19 +246,28 @@ func (b *bidSimulator) AddBuilder(ctx context.Context, builder common.Address, u
 
 		builderCli, err = builderclient.DialOptions(ctx, url, rpc.WithHTTPClient(client))
 		if err != nil {
-			log.Error("BidSimulator: failed to dial builder", "url", url, "err", err)
-			return err
+			kind := issueKindFromError(err)
+			b.incIssueMetrics(builder, kind)
+			b.snowCtx.Log.Error(
+				"BidSimulator: failed to dial builder",
+				zap.String("url", url),
+				zap.Error(err),
+			)
+			return
 		}
 		err = builderCli.Notify(ctx, params)
 		if err != nil {
-			log.Error("BidSimulator: failed to notify builder", "url", url, "err", err)
-			return err
+			kind := issueKindFromError(err)
+			b.incIssueMetrics(builder, kind)
+			b.snowCtx.Log.Error(
+				"BidSimulator: failed to notify builder",
+				zap.String("url", url),
+				zap.Error(err),
+			)
+			return
 		}
+		b.builders[builder] = builderCli
 	}
-
-	b.builders[builder] = builderCli
-
-	return nil
 }
 
 func (b *bidSimulator) ExistBuilder(builder common.Address) bool {
@@ -274,7 +291,15 @@ func (b *bidSimulator) SetBestBid(prevBlockHash common.Hash, bid *BidRuntime) {
 }
 
 func (b *bidSimulator) GetFinalBid(header *types.Header, currentBurn *uint256.Int) *BidRuntime {
-	_ = b.backend.FetchBids(context.Background(), header.Number.Int64())
+	if !b.receivingBid() {
+		return nil
+	}
+
+	err := b.backend.FetchBids(context.Background(), header.Number.Int64())
+	if err.Err != nil && err.Builder != (common.Address{}) {
+		kind := issueKindFromError(err.Err)
+		b.incIssueMetrics(err.Builder, kind)
+	}
 
 	if pendingBid := b.GetSimulatingBid(header.ParentHash); pendingBid != nil {
 		waitBidTimer := time.NewTimer(waitMEVMinerEndTimeLimit)
@@ -288,31 +313,32 @@ func (b *bidSimulator) GetFinalBid(header *types.Header, currentBurn *uint256.In
 	bestBid := b.GetBestBid(header.ParentHash)
 
 	if bestBid != nil {
-		log.Info("BidSimulator: final compare", "block", header.Number.Uint64(),
-			"validatorBurn", currentBurn.String(),
-			"validatorRewards", bestBid.packedValidatorReward.String(),
-			"blockReward", bestBid.packedBlockReward.String())
+		b.snowCtx.Log.Info("BidSimulator: final compare",
+			zap.Uint64("block", header.Number.Uint64()),
+			zap.Stringer("validatorBurn", currentBurn),
+			zap.Stringer("validatorRewards", bestBid.packedValidatorReward),
+			zap.Stringer("blockReward", bestBid.packedBlockReward))
 
 		mevProfit := new(big.Int).Add(bestBid.packedValidatorReward, bestBid.packedBlockReward)
 
 		if currentBurn.CmpBig(mevProfit) < 0 {
 			b.stats.profitableCounter.Inc(1)
-			log.Info("[BUILDER BLOCK] Bid accepted profitable",
-				"block", header.Number.Uint64(),
-				"builder", bestBid.bid.Builder,
-				"burn", bestBid.packedBlockReward,
-				"validatorReward", bestBid.packedValidatorReward,
-				"bid", bestBid.bid.Hash().TerminalString(),
+			b.snowCtx.Log.Info("BidSimulator: bid accepted profitable",
+				zap.Uint64("block", header.Number.Uint64()),
+				zap.Stringer("builder", bestBid.bid.Builder),
+				zap.Stringer("burn", bestBid.packedBlockReward),
+				zap.Stringer("validatorReward", bestBid.packedValidatorReward),
+				zap.String("bid", bestBid.bid.Hash().TerminalString()),
 			)
 			return bestBid
 		} else {
 			b.stats.unprofitableCounter.Inc(1)
-			log.Info("[BUILDER BLOCK] Bid skipped unprofitable",
-				"block", header.Number.Uint64(),
-				"builder", bestBid.bid.Builder,
-				"mevProfit", mevProfit,
-				"currentBurn", currentBurn,
-				"bid", bestBid.bid.Hash().TerminalString(),
+			b.snowCtx.Log.Info("BidSimulator: bid skipped unprofitable",
+				zap.Uint64("block", header.Number.Uint64()),
+				zap.Stringer("builder", bestBid.bid.Builder),
+				zap.Stringer("mevProfit", mevProfit),
+				zap.Stringer("currentBurn", currentBurn),
+				zap.String("bid", bestBid.bid.Hash().TerminalString()),
 			)
 		}
 	}
@@ -373,7 +399,11 @@ func (b *bidSimulator) newBidLoop() {
 		}
 		interruptCh = make(chan int32, 1)
 		b.simBidCh <- &simBidReq{interruptCh: interruptCh, bid: bidRuntime}
-		log.Debug("BidSimulator: commit", "builder", bidRuntime.bid.Builder, "bidHash", bidRuntime.bid.Hash().Hex())
+		b.snowCtx.Log.Debug(
+			"BidSimulator: commit",
+			zap.Stringer("builder", bidRuntime.bid.Builder),
+			zap.String("bidHash", bidRuntime.bid.Hash().Hex()),
+		)
 	}
 
 	genDiscardedReply := func(better *BidRuntime) error {
@@ -390,6 +420,11 @@ func (b *bidSimulator) newBidLoop() {
 		case newBid := <-b.newBidCh:
 			rt, err := newBidRuntime(newBid.bid, b.config.ValidatorCommission)
 			if err != nil {
+				b.snowCtx.Log.Warn(
+					"BidSimulator: invalid bid",
+					zap.Stringer("builder", newBid.bid.Builder),
+					zap.Error(err),
+				)
 				if newBid.feedback != nil {
 					newBid.feedback <- err
 				}
@@ -409,14 +444,14 @@ func (b *bidSimulator) newBidLoop() {
 
 			if newBid.feedback != nil {
 				newBid.feedback <- replyErr
-				log.Info("[BID ARRIVED]",
-					"block", newBid.bid.BlockNumber,
-					"builder", newBid.bid.Builder,
-					"accepted", replyErr == nil,
-					"blockReward", rt.expectedBlockReward,
-					"validatorReward", rt.expectedValidatorReward,
-					"tx", len(newBid.bid.Txs),
-					"hash", newBid.bid.Hash().TerminalString(),
+				b.snowCtx.Log.Info("BidSimulator: bid arrived",
+					zap.Uint64("block", newBid.bid.BlockNumber),
+					zap.Stringer("builder", newBid.bid.Builder),
+					zap.Bool("accepted", replyErr == nil),
+					zap.Stringer("blockReward", rt.expectedBlockReward),
+					zap.Stringer("validatorReward", rt.expectedValidatorReward),
+					zap.Int("tx", len(newBid.bid.Txs)),
+					zap.String("hash", newBid.bid.Hash().TerminalString()),
 				)
 			}
 		}
@@ -795,7 +830,10 @@ func (b *bidSimulator) reportIssue(rt *BidRuntime, err error) {
 
 		if repErr != nil {
 			b.stats.issueReportFail.Inc(1)
-			log.Warn("BidSimulator: failed to report issue", "builder", rt.bid.Builder, "err", repErr)
+			b.snowCtx.Log.Warn("BidSimulator: failed to report issue",
+				zap.Stringer("builder", rt.bid.Builder),
+				zap.Error(repErr),
+			)
 		} else {
 			b.stats.issueReportSuccess.Inc(1)
 		}
@@ -819,6 +857,8 @@ func issueKindFromError(err error) string {
 		return "validator_expectation"
 	case strings.Contains(msg, "invalid bid size"):
 		return "size_limit"
+	case strings.Contains(msg, "no bid found with this height"):
+		return "fetch_height"
 	default:
 		return "other"
 	}
@@ -859,16 +899,12 @@ func newBidRuntime(newBid *bidTypes.Bid, validatorCommission uint64) (*BidRuntim
 	expectedValidatorReward.Div(expectedValidatorReward, big.NewInt(10000))
 
 	if expectedValidatorReward.Cmp(newBid.ValidatorRewards) < 0 {
-		log.Info("BidSimulator: invalid bid, validator reward is less than promised, ignore", "builder", newBid.Builder, "bidHash", newBid.Hash().Hex())
 		return nil, fmt.Errorf("validator reward is less than promised, value: %s, commissionConfig: %d", expectedValidatorReward, newBid.ValidatorRewards)
 	}
 
 	expectedBurnShare := newBid.BurnAmounts
 
 	if expectedValidatorReward.Cmp(big.NewInt(0)) < 0 {
-		// damage self profit, ignore
-		log.Info("BidSimulator: invalid bid, validator reward is less than 0, ignore",
-			"builder", newBid.Builder, "bidHash", newBid.Hash().Hex())
 		return nil, fmt.Errorf("validator reward is less than 0, value: %s, commissionConfig: %d", expectedValidatorReward, validatorCommission)
 	}
 

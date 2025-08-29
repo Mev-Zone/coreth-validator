@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -172,11 +171,12 @@ func TestBackend_FetchBids(t *testing.T) {
 	}
 	mevBackend.SetBidSimulator(mockBS)
 
-	err = mevBackend.FetchBids(ctx, 12345)
-	require.EqualError(t, err, fmt.Sprintf("fail to fetch bid: %v: %v", builderAddr, errNoBidWithHeight))
+	errB := mevBackend.FetchBids(ctx, 12345)
+	require.EqualError(t, errB.Err, "no bid found with this height")
+	require.Equal(t, builderAddr, errB.Builder)
 
-	err = mevBackend.FetchBids(ctx, eth.H.Number.Int64()+1)
-	require.NoError(t, err)
+	errB = mevBackend.FetchBids(ctx, eth.H.Number.Int64()+1)
+	require.NoError(t, errB.Err)
 }
 
 func verifyHexParams(t *testing.T, snowCtx *snow.Context, p *types.HexParams) *avalancheWarp.UnsignedMessage {
